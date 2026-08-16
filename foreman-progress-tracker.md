@@ -1,39 +1,39 @@
 # Foreman — Progress Tracker
 
-Last updated: 2026-08-14  
+Last updated: 2026-08-16  
 *Update this file manually as work progresses — check items off as they're completed.*
 
 ## 1. Database (Supabase)
-- [x] ✅ Supabase project created
+- [x] ✅ Supabase project created (`allsaints-email-agent` / `clxqjxtmxswpjjvqunfx`)
 - [x] ✅ Schema built: `accounts`, `users`, `emails`, `drafts`, `audit_log`
 - [x] ✅ RLS enabled (permissive "allow all, tighten later" policies)
 - [x] ✅ `accounts` table seeded with info@ and team@
-- [x] ✅ `updated_at` trigger on `drafts`
+- [x] ✅ `updated_at` trigger on `drafts` (`update_drafts_updated_at`)
 - [x] ✅ Approval webhook trigger (`tr_draft_approved_webhook`) built (pg_net based)
-- [ ] ⬜ Real n8n webhook URL added (currently placeholder)
+- [ ] ⬜ Real n8n webhook URL added (currently placeholder `https://example.com/TODO_N8N_WEBHOOK_URL_PLACEHOLDER`)
 
 ## 2. n8n — Workflow 1: Ingest, Classify & Draft
-- [x] ✅ Manual Trigger + test Set node built (fake email data, IMAP not connected yet)
-- [x] ✅ OpenAI classify node built
-- [x] ✅ Classification parsing (Code node) built with fallback handling
+- [x] ✅ Manual Trigger + test Set node built (`TEST EMAIL — NPH Job Update`, IMAP not connected yet)
+- [x] ✅ OpenAI classify node built (`OpenAI — Classify`, gpt-4o)
+- [x] ✅ Classification parsing (`Parse Classification` Code node) built with multi-structure JSON extraction, fence stripping & fallback handling
 - [x] ✅ Classify prompt: category + routed_role
 - [x] ✅ Classify prompt: confidence score added
 - [x] ✅ Classify prompt: summary field added
 - [x] ✅ Classify prompt: category disambiguation rules added (urgent vs priority, finance vs contracts, nph specificity)
-- [x] ✅ Supabase insert into `emails` (with dynamic account_id lookup)
-- [x] ✅ Supabase insert into `audit_log` (classified action)
-- [x] ✅ OpenAI draft reply node built
-- [ ] ⬜ Draft prompt: addresses specific question/request in email (not generic filler)
-- [ ] ⬜ Draft prompt: no hallucinated facts — uses [CONFIRM ...] placeholders for unknowns
-- [ ] ⬜ Draft prompt: placeholder logic tested and confirmed working (not skipped by fluent phrasing)
-- [x] ✅ Supabase insert into `drafts`
+- [x] ✅ Supabase insert into `emails` (with dynamic `account_id` lookup via `Supabase — Get Account`)
+- [x] ✅ Supabase insert into `audit_log` (classified action with JSON details)
+- [x] ✅ OpenAI draft reply node built (`OpenAI — Draft Reply`, gpt-4o)
+- [x] ✅ Draft prompt: instructions added to address specific requests and mandate `[CONFIRM ...]` placeholders for unknowns
+- [ ] ⬜ (needs verification) Draft prompt: verify email body text context is passed into user prompt and test with missing facts
+- [ ] ⬜ (needs verification) Draft prompt: placeholder logic tested and confirmed working (not skipped by fluent phrasing)
+- [x] ✅ Supabase insert into `drafts` (with fallback output extraction)
 - [x] ✅ Supabase insert into `audit_log` (drafted action)
-- [x] ✅ Tested: NPH job update category
-- [ ] ⬜ Tested: urgent category
-- [ ] ⬜ Tested: finance/accounts category
-- [ ] ⬜ Tested: contracts category
-- [ ] ⬜ Tested: read_later category
-- [ ] ⬜ Tested: priority category
+- [x] ✅ Tested: NPH job update category (verified in live runs 3482–3493)
+- [ ] ⬜ (needs verification) Tested: urgent category
+- [ ] ⬜ (needs verification) Tested: finance/accounts category
+- [ ] ⬜ (needs verification) Tested: contracts category
+- [ ] ⬜ (needs verification) Tested: read_later category
+- [ ] ⬜ (needs verification) Tested: priority category
 - [ ] ⬜ Decision made: should read_later emails get a drafted reply or skip drafting entirely
 
 ## 3. n8n — Workflow 2: Send on Approval
@@ -53,7 +53,8 @@ Last updated: 2026-08-14
 - [ ] ⬜ Confirmed real inbox connection works end-to-end
 
 ## 5. Dashboard
-- [ ] ⬜ Project scaffolded (framework chosen, connected to Supabase)
+- [x] ✅ Specs, UI design guidelines & implementation plan prepared (`Prompts/Dashboard-UI/`)
+- [ ] ⬜ (needs verification / not started) Project scaffolded (framework chosen, connected to Supabase)
 - [ ] ⬜ Auth/login (basic, pre real role restrictions)
 - [ ] ⬜ Inbox list view (filterable by category, account)
 - [ ] ⬜ Email detail + draft edit panel

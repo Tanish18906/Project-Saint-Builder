@@ -1,5 +1,15 @@
 # Supabase Setup Spec — "Foreman" Email Agent
 
+> [!NOTE]
+> **Implementation Confirmation (Executed 2026-08-12):**  
+> This specification was successfully executed against Supabase project `allsaints-email-agent` (`clxqjxtmxswpjjvqunfx`) via migration `20260812070800_setup_foreman_email_agent_schema.sql`.
+> - **Tables Created:** `accounts`, `users`, `emails`, `drafts`, `audit_log` with all defined check constraints and foreign keys.
+> - **Indexes Created:** `idx_emails_account_id`, `idx_emails_status`, `idx_emails_category`.
+> - **Seed Data:** `accounts` table seeded with `info@allsaintsbuilders.com` and `team@allsaintsbuilders.com`.
+> - **Row Level Security (RLS):** Enabled on all 5 tables with permissive base policies ("allow all for now - TIGHTEN LATER with real auth").
+> - **Triggers:** `update_drafts_updated_at` before update trigger configured.
+> - **Differences from Spec:** The send-on-approval webhook was implemented as a PostgreSQL `pg_net` trigger (`tr_draft_approved_webhook` calling `notify_draft_approved_webhook()`) rather than a native Supabase Dashboard webhook (see Section 4 for details).
+
 **For: coding agent (via Supabase MCP)**
 **Context:** This is the database backend for an AI email triage/draft/approval system for a builders company. Two inboxes (info@ and team@) are monitored by n8n, which classifies emails and drafts replies. A dashboard lets staff review, edit, approve, or discard drafts. Supabase is the single shared data store between n8n and the dashboard — n8n writes incoming emails/drafts, the dashboard reads/updates them, and a Supabase webhook notifies n8n when something is approved so n8n can send it.
 
@@ -133,7 +143,13 @@ This is dashboard-side logic setting the `draft_type` column on update — no da
 
 ## 4. Database Webhook (approval → n8n)
 
-Create a Supabase Database Webhook with these settings:
+> [!IMPORTANT]
+> **Actual Implementation Note (pg_net Trigger):**  
+> Rather than configuring a UI-managed Supabase Database Webhook, this was implemented as a PostgreSQL PL/pgSQL function (`notify_draft_approved_webhook()`) and trigger (`tr_draft_approved_webhook`) using the `pg_net` extension (`net.http_post`).  
+> **Why:** Encapsulating the webhook directly in the SQL migration (`20260812070800_setup_foreman_email_agent_schema.sql`) ensures that the webhook logic is version-controlled, automated, and portable across database environments without depending on manual Supabase dashboard UI configuration.  
+> Currently configured to POST to `https://example.com/TODO_N8N_WEBHOOK_URL_PLACEHOLDER` when `status` transitions to `'approved'`.
+
+Original specification requirements:
 
 - **Table:** `drafts`
 - **Events:** `UPDATE`
