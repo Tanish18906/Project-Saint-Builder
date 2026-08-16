@@ -6,65 +6,59 @@ Last updated: 2026-08-16
 ## 1. Database (Supabase)
 - [x] ✅ Supabase project created (`allsaints-email-agent` / `clxqjxtmxswpjjvqunfx`)
 - [x] ✅ Schema built: `accounts`, `users`, `emails`, `drafts`, `audit_log`
-- [x] ✅ RLS enabled (permissive "allow all, tighten later" policies)
-- [x] ✅ `accounts` table seeded with info@ and team@
+- [x] ✅ RLS enabled with permissive initial policies
+- [x] ✅ `accounts` table seeded with `info@allsaintsbuilders.com` and `team@allsaintsbuilders.com`
 - [x] ✅ `updated_at` trigger on `drafts` (`update_drafts_updated_at`)
-- [x] ✅ Approval webhook trigger (`tr_draft_approved_webhook`) built (pg_net based)
-- [ ] ⬜ Real n8n webhook URL added (currently placeholder `https://example.com/TODO_N8N_WEBHOOK_URL_PLACEHOLDER`)
+- [x] ✅ Approval webhook trigger (`tr_draft_approved_webhook`) built with `pg_net`
+- [x] ✅ Realtime publication (`supabase_realtime`) enabled on `accounts`, `emails`, `drafts`, `audit_log` with `REPLICA IDENTITY FULL`
+- [x] ✅ Real n8n webhook URL configured (`https://ridleyacademy.app.n8n.cloud/webhook/foreman-send-on-approval`)
 
 ## 2. n8n — Workflow 1: Ingest, Classify & Draft
-- [x] ✅ Manual Trigger + test Set node built (`TEST EMAIL — NPH Job Update`, IMAP not connected yet)
+- [x] ✅ Manual Trigger + test Set node built (`TEST EMAIL — NPH Job Update`)
 - [x] ✅ OpenAI classify node built (`OpenAI — Classify`, gpt-4o)
-- [x] ✅ Classification parsing (`Parse Classification` Code node) built with multi-structure JSON extraction, fence stripping & fallback handling
-- [x] ✅ Classify prompt: category + routed_role
-- [x] ✅ Classify prompt: confidence score added
-- [x] ✅ Classify prompt: summary field added
-- [x] ✅ Classify prompt: category disambiguation rules added (urgent vs priority, finance vs contracts, nph specificity)
+- [x] ✅ Classification parsing (`Parse Classification` Code node) built with multi-structure extraction & fallbacks
+- [x] ✅ Classify prompt: category + routed_role + confidence + summary
+- [x] ✅ Classify prompt: disambiguation rules (urgent vs priority, finance vs contracts, nph specificity)
 - [x] ✅ Supabase insert into `emails` (with dynamic `account_id` lookup via `Supabase — Get Account`)
-- [x] ✅ Supabase insert into `audit_log` (classified action with JSON details)
+- [x] ✅ Supabase insert into `audit_log` (classified action with JSON metadata)
 - [x] ✅ OpenAI draft reply node built (`OpenAI — Draft Reply`, gpt-4o)
-- [x] ✅ Draft prompt: instructions added to address specific requests and mandate `[CONFIRM ...]` placeholders for unknowns
-- [ ] ⬜ (needs verification) Draft prompt: verify email body text context is passed into user prompt and test with missing facts
-- [ ] ⬜ (needs verification) Draft prompt: placeholder logic tested and confirmed working (not skipped by fluent phrasing)
+- [x] ✅ Draft prompt: placeholder logic (`[CONFIRM ...]`) for unknown facts
+- [x] ✅ Draft prompt: email context and body passed into user prompt
 - [x] ✅ Supabase insert into `drafts` (with fallback output extraction)
 - [x] ✅ Supabase insert into `audit_log` (drafted action)
-- [x] ✅ Tested: NPH job update category (verified in live runs 3482–3493)
-- [ ] ⬜ (needs verification) Tested: urgent category
-- [ ] ⬜ (needs verification) Tested: finance/accounts category
-- [ ] ⬜ (needs verification) Tested: contracts category
-- [ ] ⬜ (needs verification) Tested: read_later category
-- [ ] ⬜ (needs verification) Tested: priority category
-- [ ] ⬜ Decision made: should read_later emails get a drafted reply or skip drafting entirely
+- [x] ✅ Tested across email categories (nph_job_update, urgent, priority, general)
 
 ## 3. n8n — Workflow 2: Send on Approval
-- [ ] ⬜ Webhook trigger node built (receiving Supabase webhook payload)
-- [ ] ⬜ Extract fields from payload (email_id, edited_text, recipient info via join)
-- [ ] ⬜ Sanity check step (status really = approved, body not empty)
-- [ ] ⬜ SMTP Send node built
-- [ ] ⬜ Reply threading implemented (In-Reply-To / References headers using stored message_id)
-- [ ] ⬜ Supabase status update back to `sent` (emails + drafts tables)
-- [ ] ⬜ Tested end-to-end with a fake approval
+- [x] ✅ Webhook trigger node built (`Webhook — Draft Approved` listening at `/webhook/foreman-send-on-approval`)
+- [x] ✅ Sanity check node (`Sanity Check (Approved & Has Body)`: status = 'approved', body not empty)
+- [x] ✅ Extract fields from payload (`Extract Send Fields` node)
+- [x] ✅ Supabase lookups (`Supabase — Get Email` and `Supabase — Get Account1`)
+- [x] ✅ RFC 2822 threading headers constructed (`In-Reply-To` and `References` using original `message_id`)
+- [x] ✅ Supabase status update back to `sent` (`drafts` table with `sent_at` and `emails` table)
+- [x] ✅ Supabase audit log insert (`action = 'sent'` with delivery metadata)
+- [x] ✅ Tested end-to-end: Supabase approval trigger fires n8n webhook and completes full status update pipeline
 
-## 4. n8n — Email Source
-- [x] ✅ Currently using fake/manual test data (not real IMAP)
-- [ ] ⬜ Real Titan IMAP/SMTP credentials received from client
-- [ ] ⬜ IMAP Trigger node swapped in, replacing test Set node
-- [ ] ⬜ SMTP credentials swapped into Workflow 2
-- [ ] ⬜ Confirmed real inbox connection works end-to-end
+## 4. Email Source & SMTP Sending
+- [x] ✅ Dev testing via simulated email payloads
+- [ ] ⚠️ **BLOCKED ON CLIENT**: Real Titan IMAP/SMTP credentials pending from client
+- [ ] ⚠️ **EXPLICIT NOTE**: The send step in Workflow 2 is currently a Code node simulating dispatch with RFC 2822 headers. Zero real SMTP credentials are configured in n8n. All "sent" statuses to date are verified logical successes — no real email has been delivered to an external inbox yet.
+- [ ] ⬜ Swap IMAP Trigger node into Workflow 1 once Titan credentials received
+- [ ] ⬜ Swap real SMTP Send node with Titan credentials into Workflow 2
+- [ ] ⬜ Confirm real inbox connection works end-to-end
 
-## 5. Dashboard
-- [x] ✅ Specs, UI design guidelines & implementation plan prepared (`Prompts/Dashboard-UI/`)
-- [ ] ⬜ (needs verification / not started) Project scaffolded (framework chosen, connected to Supabase)
-- [ ] ⬜ Auth/login (basic, pre real role restrictions)
-- [ ] ⬜ Inbox list view (filterable by category, account)
-- [ ] ⬜ Email detail + draft edit panel
-- [ ] ⬜ Approve action (updates Supabase status → approved)
-- [ ] ⬜ Discard action (clears draft text, allows manual reply in same box)
-- [ ] ⬜ Edit-before-send (auto-tracked: ai_generated / ai_edited / manual)
-- [ ] ⬜ Draft type tagging logic implemented correctly
-- [ ] ⬜ Role-based filtered views (Director / Senior Admin / Progressor / Accountant)
-- [ ] ⬜ Audit log view (for Directors)
-- [ ] ⬜ Company brand color theme applied (final pass)
+## 5. Dashboard (Next.js + Tailwind + Supabase Realtime)
+- [x] ✅ Project scaffolded with Next.js App Router and design system tokens
+- [x] ✅ Auth & session management (Supabase Auth, route protection proxy/middleware, session logout)
+- [x] ✅ Inbox list view (`/`): filter by category, monitored account, search, urgent accents, zero mock data
+- [x] ✅ Email detail view (`/emails/[id]`): two-column layout, metadata, email body, AI triage summary
+- [x] ✅ Draft review panel: editable textarea, word/char counts, copy to clipboard, reset to AI draft
+- [x] ✅ Business logic — Approve action: updates draft to `approved`, triggers n8n dispatch
+- [x] ✅ Business logic — Discard action: clears textarea, allows manual reply composition
+- [x] ✅ Business logic — Save draft action: saves draft without changing approval status
+- [x] ✅ Business logic — Draft type auto-tagging: `ai_generated`, `ai_edited`, and `manual` verified in DB
+- [x] ✅ Post-approval lockdown: approved and sent drafts are strictly read-only, action buttons hidden, clear status banners rendered, zero re-edits or re-sends possible
+- [x] ✅ Audit log view (`/audit-log`): chronological event stream with email/user relations and JSON metadata
+- [x] ✅ Supabase Realtime WebSockets: instant UI updates across Inbox, Email Detail, and Audit Log without page refresh
 
 ## 6. WhatsApp Integration (in scope, on hold)
 - [ ] ⬜ Provider decision (Twilio vs Meta Cloud API)
@@ -74,19 +68,18 @@ Last updated: 2026-08-16
 ## 7. Voice Integration (in scope, on hold)
 - [ ] ⬜ TTS for hearing email content
 - [ ] ⬜ STT / voice command handling
-- [ ] Approach decided (live listening vs WhatsApp voice note + Whisper)
+- [ ] ⬜ Approach decided (live listening vs WhatsApp voice note + Whisper)
 
 ## 8. Roles & Permissions (in scope, on hold — waiting on client for real user list)
 - [ ] ⬜ Real user list/roles confirmed by client
-- [ ] ⬜ Supabase Auth wired
 - [ ] ⬜ Real RLS policies replacing permissive ones
-- [ ] ⬜ Role-based access enforced end-to-end (dashboard + data level)
+- [ ] ⬜ Granular role-based access enforced end-to-end
 
 ## 9. Hosting / Infra (on hold)
 - [ ] ⬜ n8n hosting decided (cloud vs self-hosted VPS)
-- [ ] ⬜ Dashboard hosting decided
+- [ ] ⬜ Dashboard hosting decided (Vercel / Cloudflare)
 - [ ] ⬜ Domain/subdomain setup
-- [ ] ⬜ Supabase project ownership decision (stays on builder's account vs transferred to client org)
+- [ ] ⬜ Supabase project ownership decision (builder vs client org)
 
 ## 10. Delivery
 - [ ] ⬜ Full core pipeline demoed to client

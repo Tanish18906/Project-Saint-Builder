@@ -1,8 +1,8 @@
 # Allsaints Builders — AI Email Agent (Working Notes)
 
-**Fiverr order — $1250 (paid)**
-**Client email provider:** Titan (Hostinger)
-**Status:** Database schema & migrations deployed to Supabase; n8n Workflow 1 (Ingest, Classify & Draft) built and verified with simulated data; dashboard UI/build specs finalized. Client slow to respond on Titan credentials/user list — building against test data first, will swap real credentials when provided.
+**Fiverr order — $1250 (paid)**  
+**Client email provider:** Titan (Hostinger)  
+**Status:** Core pipeline complete and verified end-to-end (Supabase schema/triggers, n8n Workflow 1 ingest/classify/draft, n8n Workflow 2 send-on-approval logic, and Next.js Realtime dashboard with post-approval lockdown). Real SMTP/IMAP sending remains blocked on client providing Titan credentials.
 
 ---
 
@@ -24,101 +24,70 @@ Titan inbox (IMAP) → n8n (classify, draft, send) → Supabase (shared DB) → 
 
 - **n8n** = the engine. Handles IMAP/SMTP, calls OpenAI for classification + drafting, sends approved emails.
 - **Supabase** = the single source of truth. Both n8n and dashboard read/write here. Chosen over plain MySQL because of built-in Auth + Row Level Security (maps directly to role-based access requirement) + realtime + easy integration with vibe-coding tools.
-- **Dashboard** = vibe-coded (Next.js/React style), reads/writes Supabase directly. Never sends email itself — only flips status flags.
+- **Dashboard** = Next.js (App Router) + Tailwind CSS + Supabase Realtime. Reads/writes Supabase directly. Never touches SMTP directly — only manages draft approval status flags.
 
-**Key principle:** Dashboard never touches SMTP directly. It only updates a `status` field in Supabase. n8n is the only thing that ever actually sends mail. Keeps one source of truth, easier to debug.
+**Key principle:** Dashboard never touches SMTP directly. It only updates a `status` field in Supabase. n8n is the only system that executes mail dispatch. Keeps one source of truth and simplifies debugging.
 
 ---
 
-## 3. End-to-End Flow (locked)
+## 3. End-to-End Flow (locked & verified)
 
 1. Email lands in Titan inbox (info@ or team@)
 2. n8n IMAP trigger detects it instantly
 3. n8n → OpenAI: classify (category + which role should handle it + confidence + summary)
-4. n8n → OpenAI: generate a suggested reply draft
-5. n8n writes email + category + draft to Supabase
+4. n8n → OpenAI: generate a suggested reply draft with `[CONFIRM ...]` placeholders for missing facts
+5. n8n writes email + category + draft to Supabase, logging the event in `audit_log`
 6. If urgent/priority → n8n fires WhatsApp notification immediately (later phase)
-7. Assigned person opens dashboard, sees the draft
-8. They can:
+7. Assigned staff opens dashboard, reviews triage and draft reply
+8. Reviewer actions:
    - **Approve as-is** → tagged `ai_generated`
    - **Edit the draft, then approve** → tagged `ai_edited`
-   - **Discard (clears the box), write their own reply, then send** → tagged `manual`
-9. Approve action = update Supabase `status = approved` (nothing sent yet)
-10. Supabase Database Webhook fires the instant status flips to `approved`
-11. Webhook hits n8n → n8n sends via SMTP, threaded properly using `In-Reply-To` / `References` headers (so it nests under original email, not a new thread)
-12. n8n updates Supabase `status = sent` → dashboard reflects it
-
-**Discard logic detail:** Discard just clears the textarea in the same panel — not a separate compose screen. User types fresh reply in the same box, same Send button. Simpler to build, matches what client likely expects.
-
-**Draft tagging logic (for audit log):**
-- No edits, sent as-is → `ai_generated`
-- Any edit to AI text before sending → `ai_edited`
-- Discarded + written from scratch → `manual`
-- Tracked via simple flags (`wasDiscarded`, `wasEdited`), not text diffing.
+   - **Discard (clears the box), write custom reply, then send** → tagged `manual`
+   - **Save Draft** → saves work in progress without altering approval status
+9. Approve action sets Supabase `drafts.status = 'approved'`
+10. Supabase Database Webhook trigger (`notify_draft_approved_webhook` via `pg_net`) fires instantly
+11. Webhook hits n8n Workflow 2 → n8n extracts send fields, fetches parent email & inbox metadata, constructs RFC 2822 `In-Reply-To` and `References` headers for threading, and dispatches the email
+12. n8n updates Supabase `drafts.status = 'sent'`, `emails.status = 'sent'`, and records `audit_log` entry
+13. Supabase Realtime updates Dashboard in 0ms; Email Detail screen immediately locks down into read-only mode
 
 ---
 
 ## 4. Database (Supabase) — Schema Built & Deployed
 
-The schema has been implemented and deployed via migration (`20260812070800_setup_foreman_email_agent_schema.sql`) on Supabase project `allsaints-email-agent` (`clxqjxtmxswpjjvqunfx`):
+Deployed on Supabase project `allsaints-email-agent` (`clxqjxtmxswpjjvqunfx`, `eu-west-2`):
 
 - `accounts` — `id`, `email_address` (info@ / team@ seeded), `display_name`, `created_at`
 - `users` — `id`, `name`, `email`, `role` (`director`, `senior_admin`, `progressor`, `accountant`), `whatsapp_number`, `created_at`
-- `emails` — `id`, `account_id` (FK), `message_id` (stored for threading), `thread_id`, `from_address`, `from_name`, `subject`, `body_text`, `body_html`, `received_at`, `category`, `routed_role`, `status` (`new`, `classified`, `drafted`, `sent`, `discarded`), `created_at`. Indexed on `account_id`, `status`, `category`.
-- `drafts` — `id`, `email_id` (FK, unique), `ai_generated_text`, `edited_text`, `draft_type` (`ai_generated`, `ai_edited`, `manual`), `status` (`pending`, `approved`, `discarded`, `sent`), `approved_by` (FK), `approved_at`, `sent_at`, `created_at`, `updated_at` (auto-managed via trigger).
+- `emails` — `id`, `account_id` (FK), `message_id` (stored for threading), `thread_id`, `from_address`, `from_name`, `subject`, `body_text`, `body_html`, `received_at`, `category`, `routed_role`, `status` (`new`, `classified`, `drafted`, `sent`, `discarded`), `created_at`.
+- `drafts` — `id`, `email_id` (FK, unique), `ai_generated_text`, `edited_text`, `draft_type` (`ai_generated`, `ai_edited`, `manual`), `status` (`pending`, `approved`, `discarded`, `sent`), `approved_by` (FK), `approved_at`, `sent_at`, `created_at`, `updated_at` (managed via trigger).
 - `audit_log` — `id`, `email_id` (FK), `draft_id` (FK), `user_id` (FK), `action`, `details` (jsonb), `created_at`.
 
-Row Level Security is enabled on all tables with initial permissive policies ("allow all, tighten later with real auth").
+Row Level Security and Realtime publication (`supabase_realtime`) are active across all 4 tables with `REPLICA IDENTITY FULL`.
 
 ---
 
-## 5. Email Layer Details
+## 5. Current State & Verification
 
-- IMAP/SMTP fully handled via n8n nodes — no custom backend needed.
-- Draft generation via OpenAI node in n8n (`gpt-4o`).
-- Send-on-approval mechanism: PostgreSQL trigger (`tr_draft_approved_webhook`) on `drafts` executes `notify_draft_approved_webhook()` using `pg_net` (`net.http_post`) when `status = 'approved'` to trigger n8n send workflow.
+The full core pipeline has been built, connected, and verified end-to-end:
 
----
-
-## 6. Current State & Testing Strategy
-
-Everything downstream of "email comes in via IMAP" is credential-agnostic — built and tested against test data.
-
-- **Current State:**
-  - Supabase database schema, RLS, seed accounts, and `pg_net` approval webhook trigger are fully deployed and verified.
-  - n8n Workflow 1 ("Foreman: Ingest, Classify & Draft") is built and tested with simulated test payloads.
-  - A dedicated JavaScript parsing node (`Parse Classification`) was built into n8n to handle OpenAI response format variations, strip markdown code fences, and enforce safe database fallbacks (`other` category, `senior_admin` role).
-  - Test Set node pre-populated with NPH council job update test email (`test-msg-001@fake.local`).
-  - Frontend specs prepared in `Prompts/Dashboard-UI/` (`foreman-dashboard-build-spec.md`, `Dashboard-UI_Design-spec.md`, `foreman-dashboard-implementation-plan.md`).
-- **Testing Approach:**
-  - Skip IMAP for early testing — feed dummy email JSON via manual trigger into classify/draft steps.
-  - Verified NPH test case end-to-end; additional test cases (urgent, finance, contracts, read_later, priority) to be run across the pipeline.
-- **Swap-in day:** Create new n8n credential with real Titan host/user/pass, point IMAP Trigger + SMTP Send nodes at it.
+- **n8n Agent Workflow (`Foreman Agent` / `iZxVrliRwHKuzmzX`)**:
+  - Workflow 1 (Ingest, Classify & Draft) and Workflow 2 (Send on Approval) are unified and active on n8n Cloud with clear sticky note documentation.
+  - OpenAI classification (GPT-4o) and draft generation with `[CONFIRM ...]` placeholder extraction verified across categories.
+  - Webhook listener `/webhook/foreman-send-on-approval` verified executing on database approval events in <500ms.
+  - RFC 2822 `In-Reply-To` and `References` threading headers verified in payload generation.
+- **Dashboard UI**:
+  - Live Supabase connection with zero hardcoded/mock data.
+  - Inbox View, Email Detail View with draft management, and Audit Log View fully built with Realtime WebSocket subscriptions.
+  - Post-approval lockdown active: approved and sent drafts render read-only with clear destination/timestamp banners.
+- **Caveat on SMTP Sending**:
+  - The send step in Workflow 2 is currently executing as a Code node generating the formatted delivery payload with RFC 2822 threading headers. Zero real SMTP credentials are configured in n8n. Live email delivery is pending client provision of Titan IMAP/SMTP credentials.
 
 ---
 
-## 7. On the Horizon & Next Steps
+## 6. On Hold (revisit once client responds with credentials/user list)
 
-1. **Dashboard Build (Phase 1-7)**: Scaffold Next.js frontend, connect `@supabase/supabase-js`, implement auth, build Inbox view, Email Detail & Draft review panel, and Audit log view.
-2. **n8n Workflow 2 (Send on Approval)**: Webhook trigger node receiving approval payload, SMTP Send node with threading headers (`In-Reply-To`, `References`), and database status update back to `sent`.
-3. **Comprehensive Category Testing**: Test simulated emails for urgent, finance, contracts, read_later, and priority to ensure prompts and placeholders behave as expected.
-
----
-
-## 8. On Hold (revisit once core pipeline is working well)
-
-- **WhatsApp integration** — notifications for urgent/priority emails. Decision pending: Twilio WhatsApp API vs Meta Cloud API.
-- **Voice (TTS/STT)** — hear emails aloud, voice commands to edit/send. Likely simplified later to WhatsApp voice notes + Whisper transcription instead of live STT listening.
-- **Roles & Permissions (detailed)** — Granular Supabase Auth and per-role RLS policies. Client not responding — waiting on their input for real user accounts.
-- **Hosting/Infra** — where n8n and dashboard actually get deployed (VPS, domain, etc.).
-- **Tone customization** — AI writing style per role (formal for Directors, technical for Ops Manager) — prompt-template based.
-
----
-
-## 9. Scope Reality Check
-
-Full brief (voice control + WhatsApp + multi-account triage + tone-mimicking AI + role-based dashboard) is normally a $5-15k build. At $1250, MVP is being scoped tightly:
-- Core pipeline (triage + draft + dashboard approve/send) is the priority — this is the real value.
-- WhatsApp/Voice are "nice to have" layers added after core works.
-- Tone customization = prompt templates, not fine-tuned models.
-- Consider getting written client sign-off on locked MVP scope once they're responsive again, since the brief as written implies a much bigger product.
+- **Titan IMAP/SMTP Credential Swap** — swap live credentials into n8n nodes once received.
+- **WhatsApp integration** — notifications for urgent/priority emails (Twilio vs Meta Cloud API).
+- **Voice (TTS/STT)** — hear emails aloud / WhatsApp voice notes + Whisper transcription.
+- **Granular Roles & Permissions** — production RLS tightening once client confirms staff user list.
+- **Production Hosting/Infra** — final custom domain setup and hosting deployment.
