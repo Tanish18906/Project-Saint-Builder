@@ -56,7 +56,7 @@ Last updated: 2026-08-16
 - [x] ✅ Specs, UI design guidelines & implementation plan prepared (`Prompts/Dashboard-UI/`)
 - [x] ✅ Project scaffolded (Next.js App Router, Tailwind CSS, Supabase client connected)
 - [x] ✅ Auth/login (Supabase Auth email/password, route protection middleware, session logout)
-- [ ] ⬜ Inbox list view (filterable by category, account)
+- [x] ✅ Inbox list view (filterable by category, account, search, urgent visual accents)
 - [ ] ⬜ Email detail + draft edit panel
 - [ ] ⬜ Approve action (updates Supabase status → approved)
 - [ ] ⬜ Discard action (clears draft text, allows manual reply in same box)
