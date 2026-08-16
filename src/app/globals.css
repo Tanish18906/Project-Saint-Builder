@@ -1,26 +1,34 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --foreman-charcoal: #1c1a17;
+  --foreman-charcoal-light: #2a2723;
+  --foreman-cream: #f5f1e8;
+  --foreman-cream-dim: #e8e2d4;
+  --foreman-white: #ffffff;
+  --foreman-text-primary: #1c1a17;
+  --foreman-text-secondary: #6b6559;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --category-urgent: #dc2626;
+  --category-priority: #ea580c;
+  --category-finance: #0891b2;
+  --category-contracts: #7c3aed;
+  --category-nph: #059669;
+  --category-read-later: #6b6559;
+  --category-other: #94a3b8;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --status-new: #94a3b8;
+  --status-pending: #ea580c;
+  --status-approved: #059669;
+  --status-sent: #1c1a17;
+  --status-discarded: #94a3b8;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--foreman-white);
+  color: var(--foreman-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
 }
