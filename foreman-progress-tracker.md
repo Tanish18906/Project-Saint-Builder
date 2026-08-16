@@ -54,7 +54,7 @@ Last updated: 2026-08-16
 
 ## 5. Dashboard
 - [x] ✅ Specs, UI design guidelines & implementation plan prepared (`Prompts/Dashboard-UI/`)
-- [ ] ⬜ (needs verification / not started) Project scaffolded (framework chosen, connected to Supabase)
+- [x] ✅ Project scaffolded (Next.js App Router, Tailwind CSS, Supabase client connected)
 - [ ] ⬜ Auth/login (basic, pre real role restrictions)
 - [ ] ⬜ Inbox list view (filterable by category, account)
 - [ ] ⬜ Email detail + draft edit panel
