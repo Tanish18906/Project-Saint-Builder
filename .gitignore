@@ -25,3 +25,8 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Next.js build
+.next/
+out/
+
