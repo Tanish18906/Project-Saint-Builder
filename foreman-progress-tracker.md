@@ -83,7 +83,7 @@ Last updated: 2026-08-17
 - [x] ✅ Reused existing `saveDraftAction`, `approveAndSendAction`, and `discardDraftAction` without duplicating database write logic
 - [x] ✅ Post-approval lockdown enforced (disables push-to-talk, renders read-only status and approver metadata)
 - [x] ✅ Fallback "Show text instead" drawer and microphone permission denied handling
-- [ ] ⬜ **Follow-up (n8n Workflow 3)**: Replace placeholder voice link in WhatsApp dispatch with real signed token generation
+- [x] ✅ **Signed Token Generation (n8n Workflow 3)**: Generated signed HMAC-SHA256 tokens with 24h expiration in n8n Workflow 3, closing the WhatsApp → Voice Page loop (`Review & respond: https://foreman.app/voice/{{email_id}}?token={{voice_token}}`)
 
 ## 8. Roles & Permissions (in scope, on hold — waiting on client for real user list)
 - [ ] ⬜ Real user list/roles confirmed by client

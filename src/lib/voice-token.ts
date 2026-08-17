@@ -34,9 +34,9 @@ function base64UrlDecode(input: string): string {
 
 /**
  * Generates a signed voice token for an email_id.
- * Valid for the specified number of hours (default: 48h).
+ * Valid for the specified number of hours (default: 24h).
  */
-export function generateVoiceToken(emailId: string, expiresInHours = 48): string {
+export function generateVoiceToken(emailId: string, expiresInHours = 24): string {
   const now = Math.floor(Date.now() / 1000)
   const exp = now + expiresInHours * 3600
 
