@@ -67,7 +67,7 @@ ${toneInstructionText}`
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-5.4',
+            model: 'gpt-5.4-mini',
             temperature: 0.4,
             messages: [
               { role: 'system', content: systemPrompt },
@@ -76,10 +76,10 @@ ${toneInstructionText}`
           }),
         })
 
-        // Fallback retry with gpt-4o if gpt-5.4 model is not yet provisioned on this key
+        // Fallback retry with gpt-4o-mini / gpt-4o if gpt-5.4-mini model is not yet provisioned on this key
         if (!openAiRes.ok) {
           const errText = await openAiRes.text()
-          console.warn('[OpenAI gpt-5.4 Error, attempting fallback]', errText)
+          console.warn('[OpenAI gpt-5.4-mini Error, attempting fallback]', errText)
 
           openAiRes = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -88,7 +88,7 @@ ${toneInstructionText}`
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'gpt-4o',
+              model: 'gpt-4o-mini',
               temperature: 0.4,
               messages: [
                 { role: 'system', content: systemPrompt },
