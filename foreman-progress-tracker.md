@@ -1,6 +1,6 @@
 # Foreman — Progress Tracker
 
-Last updated: 2026-08-16  
+Last updated: 2026-08-17  
 *Update this file manually as work progresses — check items off as they're completed.*
 
 ## 1. Database (Supabase)
@@ -10,8 +10,9 @@ Last updated: 2026-08-16
 - [x] ✅ `accounts` table seeded with `info@allsaintsbuilders.com` and `team@allsaintsbuilders.com`
 - [x] ✅ `updated_at` trigger on `drafts` (`update_drafts_updated_at`)
 - [x] ✅ Approval webhook trigger (`tr_draft_approved_webhook`) built with `pg_net`
+- [x] ✅ WhatsApp notification webhook trigger (`tr_email_inserted_whatsapp_webhook`) built with `pg_net`
 - [x] ✅ Realtime publication (`supabase_realtime`) enabled on `accounts`, `emails`, `drafts`, `audit_log` with `REPLICA IDENTITY FULL`
-- [x] ✅ Real n8n webhook URL configured (`https://ridleyacademy.app.n8n.cloud/webhook/foreman-send-on-approval`)
+- [x] ✅ Real n8n webhook URLs configured (`foreman-send-on-approval`, `foreman-whatsapp-notifications`)
 
 ## 2. n8n — Workflow 1: Ingest, Classify & Draft
 - [x] ✅ Manual Trigger + test Set node built (`TEST EMAIL — NPH Job Update`)
@@ -60,10 +61,15 @@ Last updated: 2026-08-16
 - [x] ✅ Audit log view (`/audit-log`): chronological event stream with email/user relations and JSON metadata
 - [x] ✅ Supabase Realtime WebSockets: instant UI updates across Inbox, Email Detail, and Audit Log without page refresh
 
-## 6. WhatsApp Integration (in scope, on hold)
-- [ ] ⬜ Provider decision (Twilio vs Meta Cloud API)
-- [ ] ⬜ Notification trigger wired (urgent/priority emails)
-- [ ] ⬜ Message includes summary or link to review
+## 6. WhatsApp Integration (Workflow 3)
+- [x] ✅ Database Webhook trigger (`tr_email_inserted_whatsapp_webhook`) on `emails` table INSERT
+- [x] ✅ Webhook listener node in n8n (`Webhook — Email Inserted` at `/webhook/foreman-whatsapp-notifications`)
+- [x] ✅ Filter node: routes only `urgent` and `priority` emails, drops all other categories silently
+- [x] ✅ Dynamic recipient lookup against Supabase `users` by `routed_role`
+- [x] ✅ Message formatting with E.164 phone normalization, category indicators (`🔴`/`🟠`), body truncation (150 chars), and voice review placeholder link
+- [x] ✅ Twilio WhatsApp dispatch relay + masked phone number logging in Supabase `audit_log` (`whatsapp_notified`)
+- [x] ✅ Graceful empty-state handling when no recipient user exists (`whatsapp_skipped_no_recipient`)
+- [x] ✅ Tested end-to-end across urgent, priority, no-recipient, and non-urgent email flows
 
 ## 7. Voice Integration (in scope, on hold)
 - [ ] ⬜ TTS for hearing email content

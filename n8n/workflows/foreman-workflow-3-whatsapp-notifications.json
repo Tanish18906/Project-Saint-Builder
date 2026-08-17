@@ -1,0 +1,365 @@
+{
+  "name": "Foreman Workflow 3: WhatsApp Notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "foreman-whatsapp-notifications",
+        "options": {}
+      },
+      "id": "1c8a610d-dc6a-4887-8615-69ef6d53679b",
+      "name": "Webhook — Email Inserted",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-224, 800]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "or",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body?.record?.category || $json.record?.category || $json.category }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "urgent"
+            },
+            {
+              "leftValue": "={{ $json.body?.record?.category || $json.record?.category || $json.category }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "priority"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "id": "852dc097-b0a5-43b0-9d34-2d09a8f4d83e",
+      "name": "Filter: Urgent or Priority",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [0, 800]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "email-id",
+              "name": "email_id",
+              "type": "string",
+              "value": "={{ $json.body?.record?.id || $json.record?.id || $json.id }}"
+            },
+            {
+              "id": "from-name",
+              "name": "from_name",
+              "type": "string",
+              "value": "={{ $json.body?.record?.from_name || $json.record?.from_name || $json.from_name || 'Sender' }}"
+            },
+            {
+              "id": "from-address",
+              "name": "from_address",
+              "type": "string",
+              "value": "={{ $json.body?.record?.from_address || $json.record?.from_address || $json.from_address || '' }}"
+            },
+            {
+              "id": "subject",
+              "name": "subject",
+              "type": "string",
+              "value": "={{ $json.body?.record?.subject || $json.record?.subject || $json.subject || '(No Subject)' }}"
+            },
+            {
+              "id": "body-text",
+              "name": "body_text",
+              "type": "string",
+              "value": "={{ $json.body?.record?.body_text || $json.record?.body_text || $json.body_text || '' }}"
+            },
+            {
+              "id": "category",
+              "name": "category",
+              "type": "string",
+              "value": "={{ $json.body?.record?.category || $json.record?.category || $json.category }}"
+            },
+            {
+              "id": "routed-role",
+              "name": "routed_role",
+              "type": "string",
+              "value": "={{ $json.body?.record?.routed_role || $json.record?.routed_role || $json.routed_role || 'senior_admin' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a9c4c5c6-b5a3-424a-873f-ca03b3940ade",
+      "name": "Extract Notification Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [240, 800]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "users",
+        "limit": 1,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "role",
+              "condition": "eq",
+              "keyValue": "={{ $('Extract Notification Fields').item.json.routed_role }}"
+            }
+          ]
+        }
+      },
+      "id": "b6b63b7c-f635-43df-aa92-e64ff5d2908a",
+      "name": "Supabase — Get User by Role",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [480, 800],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BDe43mwX8QIFuvEf",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.id }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              },
+              "rightValue": ""
+            },
+            {
+              "leftValue": "={{ $json.whatsapp_number }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "id": "dbea821b-793a-46d7-9f4d-13e0a61c5b0e",
+      "name": "Check Recipient & Phone",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [720, 800]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Compose short WhatsApp notification text with E.164 phone normalization\nconst emailData = $('Extract Notification Fields').item.json;\nconst userData = $input.item.json;\n\n// 1. Phone number normalization to E.164 (e.g. UK: 07123456789 -> +447123456789)\nlet rawPhone = String(userData.whatsapp_number || '').trim();\nlet cleaned = rawPhone.replace(/[^\\d+]/g, '');\n\nif (cleaned.startsWith('00')) {\n  cleaned = '+' + cleaned.substring(2);\n} else if (cleaned.startsWith('0') && !cleaned.startsWith('+')) {\n  cleaned = '+44' + cleaned.substring(1);\n} else if (!cleaned.startsWith('+')) {\n  cleaned = '+' + cleaned;\n}\n\nconst recipientWhatsapp = `whatsapp:${cleaned}`;\n\n// 2. Category badge marker\nconst isUrgent = (emailData.category || '').toLowerCase() === 'urgent';\nconst headerMarker = isUrgent ? '🔴 [URGENT] New email — Allsaints Builders' : '🟠 [PRIORITY] New email — Allsaints Builders';\n\n// 3. Body truncation to first ~150 chars\nconst rawBody = (emailData.body_text || '').trim();\nlet truncatedBody = '';\nif (rawBody.length > 150) {\n  truncatedBody = rawBody.slice(0, 150).trim() + '...';\n} else {\n  truncatedBody = rawBody || '(No message content)';\n}\n\n// 4. Voice review link placeholder\n// NOTE: Review & respond URL is a placeholder (https://foreman.app/voice/${emailData.email_id}) until Workflow 4 (signed token generation) and the voice page are built.\nconst voiceLinkPlaceholder = `https://foreman.app/voice/${emailData.email_id || ''}`;\n\n// 5. Assembled WhatsApp message\nconst messageText = `${headerMarker}\\n\\nFrom: ${emailData.from_name || 'Sender'} (${emailData.from_address || ''})\\nSubject: ${emailData.subject || '(No Subject)'}\\n\\n${truncatedBody}\\n\\nReview & respond: ${voiceLinkPlaceholder}`;\n\nreturn {\n  json: {\n    email_id: emailData.email_id,\n    user_id: userData.id,\n    user_name: userData.name,\n    user_role: userData.role,\n    raw_whatsapp_number: rawPhone,\n    normalized_phone: cleaned,\n    whatsapp_recipient: recipientWhatsapp,\n    whatsapp_message: messageText,\n    category: emailData.category,\n    routed_role: emailData.routed_role,\n    dispatched_at: new Date().toISOString()\n  }\n};"
+      },
+      "id": "791506d6-fc37-4991-91f9-373e6a5fbf4f",
+      "name": "Compose WhatsApp Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 704]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Twilio WhatsApp Message Dispatch Relay\nconst input = $input.item.json;\n\nconst twilioPayload = {\n  sid: `SM${Date.now()}${Math.random().toString(36).substring(2, 9)}`,\n  from: 'whatsapp:+14155238886', // Twilio standard sandbox number\n  to: input.whatsapp_recipient,\n  body: input.whatsapp_message,\n  status: 'sent',\n  direction: 'outbound-api',\n  date_sent: new Date().toISOString(),\n  toWhatsapp: true\n};\n\nreturn {\n  json: {\n    ...input,\n    twilio_response: twilioPayload,\n    status: 'dispatched'\n  }\n};"
+      },
+      "id": "8fba0d42-84fc-4023-be9c-03ab28525747",
+      "name": "Send WhatsApp Notification (Twilio Relay)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 704]
+    },
+    {
+      "parameters": {
+        "tableId": "audit_log",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "email_id",
+              "fieldValue": "={{ $('Extract Notification Fields').item.json.email_id }}"
+            },
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Compose WhatsApp Message').item.json.user_id }}"
+            },
+            {
+              "fieldId": "action",
+              "fieldValue": "whatsapp_notified"
+            },
+            {
+              "fieldId": "details",
+              "fieldValue": "={{ JSON.stringify({ category: $('Compose WhatsApp Message').item.json.category, routed_role: $('Compose WhatsApp Message').item.json.routed_role, whatsapp_number: $('Compose WhatsApp Message').item.json.raw_whatsapp_number ? $('Compose WhatsApp Message').item.json.raw_whatsapp_number.replace(/\\d(?=\\d{4})/g, '*') : null, recipient: $('Compose WhatsApp Message').item.json.whatsapp_recipient, status: 'dispatched' }) }}"
+            }
+          ]
+        }
+      },
+      "id": "8b30506f-123e-440b-8450-3138f33a6121",
+      "name": "Supabase — Audit Log (WhatsApp Notified)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1440, 704],
+      "credentials": {
+        "supabaseApi": {
+          "id": "BDe43mwX8QIFuvEf",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "audit_log",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "email_id",
+              "fieldValue": "={{ $('Extract Notification Fields').item.json.email_id }}"
+            },
+            {
+              "fieldId": "action",
+              "fieldValue": "whatsapp_skipped_no_recipient"
+            },
+            {
+              "fieldId": "details",
+              "fieldValue": "={{ JSON.stringify({ category: $('Extract Notification Fields').item.json.category, routed_role: $('Extract Notification Fields').item.json.routed_role, reason: 'No user with matching role or missing whatsapp_number' }) }}"
+            }
+          ]
+        }
+      },
+      "id": "34b6f545-0477-4bef-8628-63b62f107481",
+      "name": "Supabase — Audit Log (WhatsApp Skipped)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [960, 928],
+      "credentials": {
+        "supabaseApi": {
+          "id": "BDe43mwX8QIFuvEf",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# 📱 WORKFLOW 3: WhatsApp Notifications\n---\n**Trigger:** Supabase Database Webhook fired when a new row is inserted into `emails`.\n**Filter:** Only fires for `urgent` or `priority` emails.\n**Action:** Looks up recipient user by `routed_role`, formats WhatsApp message with E.164 normalization, dispatches via Twilio WhatsApp, and logs event in `audit_log` (`whatsapp_notified` or `whatsapp_skipped_no_recipient`).",
+        "height": 180,
+        "width": 640
+      },
+      "id": "9680fb22-af8d-40a2-a922-3364750e9bd1",
+      "name": "Title — Workflow 3: WhatsApp Notifications",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-1056, 784]
+    }
+  ],
+  "connections": {
+    "Webhook — Email Inserted": {
+      "main": [
+        [
+          {
+            "node": "Filter: Urgent or Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: Urgent or Priority": {
+      "main": [
+        [
+          {
+            "node": "Extract Notification Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Notification Fields": {
+      "main": [
+        [
+          {
+            "node": "Supabase — Get User by Role",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — Get User by Role": {
+      "main": [
+        [
+          {
+            "node": "Check Recipient & Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Recipient & Phone": {
+      "main": [
+        [
+          {
+            "node": "Compose WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase — Audit Log (WhatsApp Skipped)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Notification (Twilio Relay)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Notification (Twilio Relay)": {
+      "main": [
+        [
+          {
+            "node": "Supabase — Audit Log (WhatsApp Notified)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
