@@ -60,21 +60,43 @@ ${toneInstructionText}`
 
     if (apiKey) {
       try {
-        const openAiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        let openAiRes = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o',
-            temperature: 0.5,
+            model: 'gpt-5.4',
+            temperature: 0.4,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userMessage },
             ],
           }),
         })
+
+        // Fallback retry with gpt-4o if gpt-5.4 model is not yet provisioned on this key
+        if (!openAiRes.ok) {
+          const errText = await openAiRes.text()
+          console.warn('[OpenAI gpt-5.4 Error, attempting fallback]', errText)
+
+          openAiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              temperature: 0.4,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userMessage },
+              ],
+            }),
+          })
+        }
 
         if (openAiRes.ok) {
           const data = await openAiRes.json()

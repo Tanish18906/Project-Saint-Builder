@@ -27,19 +27,40 @@ export async function POST(request: NextRequest) {
     // If OpenAI API key is configured, stream real TTS audio
     if (apiKey) {
       try {
-        const openAiRes = await fetch('https://api.openai.com/v1/audio/speech', {
+        let openAiRes = await fetch('https://api.openai.com/v1/audio/speech', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'tts-1',
+            model: 'gpt-4o-mini-tts',
             input: cleanText,
             voice: 'alloy',
             response_format: 'mp3',
+            instructions: 'Read clearly and at a measured, professional pace for a UK building company operations team.',
           }),
         })
+
+        // Fallback retry with base tts-1 if gpt-4o-mini-tts is not yet provisioned on this key
+        if (!openAiRes.ok) {
+          const errText = await openAiRes.text()
+          console.warn('[OpenAI gpt-4o-mini-tts Error, attempting fallback]', errText)
+          
+          openAiRes = await fetch('https://api.openai.com/v1/audio/speech', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'tts-1',
+              input: cleanText,
+              voice: 'alloy',
+              response_format: 'mp3',
+            }),
+          })
+        }
 
         if (!openAiRes.ok) {
           const errText = await openAiRes.text()
