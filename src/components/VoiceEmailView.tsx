@@ -98,6 +98,7 @@ export function VoiceEmailView({
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const playbackSeqRef = useRef<number>(0)
   const hasAutoPlayedRef = useRef<boolean>(false)
+  const [autoplayBlocked, setAutoplayBlocked] = useState<boolean>(false)
 
   const [isPending, startTransition] = useTransition()
 
@@ -153,7 +154,7 @@ export function VoiceEmailView({
     setUiState((prev) => (prev === 'speaking' ? 'idle' : prev))
   }
 
-  // 2. Play TTS Audio helper (strictly sequential, never overlapping)
+  // 2. Play TTS Audio helper (strictly sequential, handles autoplay policies)
   const playTTS = async (textToSpeak: string, onEndCallback?: () => void) => {
     if (!textToSpeak.trim()) return
 
@@ -208,7 +209,44 @@ export function VoiceEmailView({
           }
         }
 
-        await audio.play()
+        try {
+          await audio.play()
+          setAutoplayBlocked(false)
+        } catch (playErr: any) {
+          // Handle Browser Autoplay Policy restrictions
+          if (playErr.name === 'NotAllowedError' || playErr.message?.includes('user')) {
+            console.warn('[Autoplay prevented by browser security policy, awaiting user touch gesture]')
+            setAutoplayBlocked(true)
+            setUiState('idle')
+            setFeedback({
+              type: 'info',
+              message: '🔊 Tap anywhere on the screen to play email audio.',
+            })
+
+            const unlockAudio = () => {
+              window.removeEventListener('click', unlockAudio)
+              window.removeEventListener('touchstart', unlockAudio)
+              window.removeEventListener('pointerdown', unlockAudio)
+              setAutoplayBlocked(false)
+              if (activeAudioRef.current) {
+                activeAudioRef.current
+                  .play()
+                  .then(() => setUiState('speaking'))
+                  .catch(() => playTTS(textToSpeak, onEndCallback))
+              } else {
+                playTTS(textToSpeak, onEndCallback)
+              }
+            }
+
+            window.addEventListener('click', unlockAudio, { once: true })
+            window.addEventListener('touchstart', unlockAudio, { once: true })
+            window.addEventListener('pointerdown', unlockAudio, { once: true })
+            return
+          } else {
+            console.warn('[Audio play error, falling back to browser speech]', playErr)
+            useBrowserTTSFallback(textToSpeak, currentSeq, onEndCallback)
+          }
+        }
       } else {
         // Explicit browser speech synthesis response
         useBrowserTTSFallback(textToSpeak, currentSeq, onEndCallback)
@@ -230,23 +268,27 @@ export function VoiceEmailView({
 
     if (playbackSeqRef.current !== seq) return
 
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'en-GB'
-    utterance.rate = 1.0
-    utterance.onend = () => {
-      if (playbackSeqRef.current === seq) {
-        setUiState('idle')
-        if (onEnd) onEnd()
+    try {
+      window.speechSynthesis.cancel()
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'en-GB'
+      utterance.rate = 1.0
+      utterance.onend = () => {
+        if (playbackSeqRef.current === seq) {
+          setUiState('idle')
+          if (onEnd) onEnd()
+        }
       }
-    }
-    utterance.onerror = () => {
-      if (playbackSeqRef.current === seq) {
-        setUiState('idle')
+      utterance.onerror = () => {
+        if (playbackSeqRef.current === seq) {
+          setUiState('idle')
+        }
       }
+      speechUtteranceRef.current = utterance
+      window.speechSynthesis.speak(utterance)
+    } catch (e) {
+      if (playbackSeqRef.current === seq) setUiState('idle')
     }
-    speechUtteranceRef.current = utterance
-    window.speechSynthesis.speak(utterance)
   }
 
   // 3. Auto-play original email body on load (guarded to run exactly once per page load)
@@ -651,6 +693,24 @@ export function VoiceEmailView({
             )}
             <p className="font-medium leading-snug">{feedback.message}</p>
           </div>
+        )}
+
+        {/* Browser Autoplay Blocked Prompt Banner */}
+        {!isLocked && autoplayBlocked && (
+          <button
+            type="button"
+            onClick={() => {
+              setAutoplayBlocked(false)
+              const introText = email.body_text
+                ? `Email from ${email.from_name || 'sender'}. Subject: ${email.subject || 'No subject'}. ${email.body_text}`
+                : `Email from ${email.from_name || 'sender'}. Subject: ${email.subject || 'No subject'}. No text body provided.`
+              playTTS(introText)
+            }}
+            className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2a2723] text-[#f5f1e8] rounded-xl shadow-md flex items-center justify-center gap-2.5 text-xs font-semibold animate-pulse cursor-pointer border border-[#e8e2d4]"
+          >
+            <Volume2 className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>🔊 Tap here to listen to email</span>
+          </button>
         )}
 
         {/* Locked Post-Approval State */}
