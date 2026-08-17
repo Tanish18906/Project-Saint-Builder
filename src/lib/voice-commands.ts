@@ -3,10 +3,10 @@ export type VoiceActionType =
   | 'rewrite_formal'
   | 'rewrite_shorter'
   | 'rewrite_technical'
-  | 'approve_send'
   | 'discard'
   | 'apply_edit'
   | 'dictation'
+  | 'voice_send_blocked'
 
 export interface VoiceCommandResult {
   action: VoiceActionType
@@ -122,20 +122,22 @@ export function parseVoiceCommand(transcript: string): VoiceCommandResult {
     }
   }
 
-  // 5. Approve & Send
+  // 5. Blocked Voice Send (Safety Rule: Email cannot be sent via voice, must click button)
   if (
     normalized === 'approve and send' ||
     normalized === 'approve & send' ||
+    normalized === 'approve send' ||
     normalized === 'approve' ||
     normalized === 'send it' ||
     normalized === 'send' ||
+    normalized === 'send email' ||
     normalized === 'approve draft'
   ) {
     return {
-      action: 'approve_send',
+      action: 'voice_send_blocked',
       rawText,
       normalizedText: normalized,
-      feedbackMessage: 'Approving and queueing email for dispatch...',
+      feedbackMessage: 'For safety, emails cannot be sent by voice. Please tap the Approve & Send button on screen.',
     }
   }
 

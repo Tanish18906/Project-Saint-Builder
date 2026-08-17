@@ -485,47 +485,14 @@ export function VoiceEmailView({
       return
     }
 
-    // C. Approve & Send
-    if (action === 'approve_send') {
-      if (!draftText.trim()) {
-        setUiState('idle')
-        setFeedback({ type: 'warning', message: 'Draft is empty. Please dictate a reply before approving.' })
-        await playTTS('The draft is empty. Please speak a reply before approving.')
-        return
-      }
-
-      setUiState('processing')
-      setFeedback({ type: 'info', message: 'Approving draft and triggering email dispatch...' })
-
-      startTransition(async () => {
-        const res = await approveAndSendAction({
-          emailId: email.id,
-          draftId: draft?.id,
-          editedText: draftText,
-          wasDiscarded,
-          via: 'voice',
-        })
-
-        if (res.success) {
-          if (draft) {
-            setDraft({
-              ...draft,
-              status: 'approved',
-              draft_type: res.draftType || 'ai_generated',
-              edited_text: draftText,
-              approved_at: new Date().toISOString(),
-            })
-          }
-          setFeedback({
-            type: 'success',
-            message: '✅ Approved! Email has been queued for automated dispatch.',
-          })
-          await playTTS('Approved. The email has been queued for dispatch.')
-        } else {
-          setUiState('idle')
-          setFeedback({ type: 'error', message: res.error || 'Failed to approve draft.' })
-        }
+    // C. Blocked Voice Send (Safety Rule: Voice sending disabled, manual button click required)
+    if (action === 'voice_send_blocked') {
+      setUiState('idle')
+      setFeedback({
+        type: 'warning',
+        message: '⚠️ For safety, emails cannot be sent by voice. Please tap the Approve & Send button on screen.',
       })
+      await playTTS('For safety, emails cannot be sent by voice. Please tap the Approve & Send button on screen to send.')
       return
     }
 
@@ -543,7 +510,7 @@ export function VoiceEmailView({
 
         setFeedback({
           type: 'success',
-          message: 'Draft discarded. Hold button to dictate a custom replacement reply.',
+          message: 'Draft discarded. Hold button to speak your custom replacement reply.',
         })
         await playTTS('Draft cleared. Speak to dictate your reply.')
       })
@@ -627,6 +594,45 @@ export function VoiceEmailView({
         setFeedback({ type: 'error', message: 'Failed to apply edit to draft. Please try again.' })
       }
     }
+  }
+
+  // 7. Manual button-only approval & sending (Strict Safety Rule)
+  const handleApproveAndSend = () => {
+    if (isLocked || !draftText.trim()) return
+
+    stopAudio()
+    setUiState('processing')
+    setFeedback({ type: 'info', message: 'Approving draft and triggering email dispatch...' })
+
+    startTransition(async () => {
+      const res = await approveAndSendAction({
+        emailId: email.id,
+        draftId: draft?.id,
+        editedText: draftText,
+        wasDiscarded,
+        via: 'voice',
+      })
+
+      if (res.success) {
+        if (draft) {
+          setDraft({
+            ...draft,
+            status: 'approved',
+            draft_type: res.draftType || 'ai_generated',
+            edited_text: draftText,
+            approved_at: new Date().toISOString(),
+          })
+        }
+        setFeedback({
+          type: 'success',
+          message: '✅ Approved! Email has been queued for automated dispatch.',
+        })
+        await playTTS('Approved. The email has been queued for dispatch.')
+      } else {
+        setUiState('idle')
+        setFeedback({ type: 'error', message: res.error || 'Failed to approve draft.' })
+      }
+    })
   }
 
   // Format Received Date
@@ -819,7 +825,7 @@ export function VoiceEmailView({
                 Voice Commands (Hold &amp; Speak)
               </span>
               <div className="flex flex-wrap justify-center gap-1.5 max-w-sm">
-                {['"read the draft"', '"make it more formal"', '"make it shorter"', '"approve and send"', '"discard"'].map(
+                {['"read the draft"', '"make it more formal"', '"make it shorter"', '"make it more technical"', '"discard"'].map(
                   (cmd) => (
                     <span
                       key={cmd}
@@ -830,6 +836,22 @@ export function VoiceEmailView({
                   )
                 )}
               </div>
+            </div>
+
+            {/* Prominent Approve & Send Button (Strict Safety Rule: Button click required) */}
+            <div className="w-full max-w-sm pt-2">
+              <button
+                type="button"
+                onClick={handleApproveAndSend}
+                disabled={isPending || !draftText.trim()}
+                className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2a2723] text-[#f5f1e8] text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.98]"
+              >
+                {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 text-emerald-400" />}
+                <span>Approve &amp; Send Reply</span>
+              </button>
+              <p className="text-[10px] text-[#6b6559] mt-1.5 text-center">
+                🔒 Button click required to send (voice sending disabled for safety)
+              </p>
             </div>
           </div>
         )}
@@ -910,11 +932,11 @@ export function VoiceEmailView({
               <div className="flex items-center gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => executeVoiceAction({ action: 'approve_send', rawText: '', normalizedText: '' })}
+                  onClick={handleApproveAndSend}
                   disabled={isPending || !draftText.trim()}
                   className="flex-1 py-2 px-3 bg-[#1c1a17] hover:bg-[#2a2723] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
-                  {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-emerald-400" />}
                   <span>Approve &amp; Send</span>
                 </button>
 
