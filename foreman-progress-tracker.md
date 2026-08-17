@@ -61,15 +61,16 @@ Last updated: 2026-08-17
 - [x] ✅ Audit log view (`/audit-log`): chronological event stream with email/user relations and JSON metadata
 - [x] ✅ Supabase Realtime WebSockets: instant UI updates across Inbox, Email Detail, and Audit Log without page refresh
 
-## 6. WhatsApp Integration (Workflow 3)
+## 6. WhatsApp Integration (Workflow 3 — Standalone Canvas: "Foreman WhatsApp")
+- [x] ✅ Workflow migrated to dedicated standalone n8n canvas (`udp2JRhk97k0PeNo` / "Foreman WhatsApp"), separate from Workflows 1 & 2 (`iZxVrliRwHKuzmzX`), adhering to the one-workflow-per-trigger-event pattern
 - [x] ✅ Database Webhook trigger (`tr_email_inserted_whatsapp_webhook`) on `emails` table INSERT
 - [x] ✅ Webhook listener node in n8n (`Webhook — Email Inserted` at `/webhook/foreman-whatsapp-notifications`)
 - [x] ✅ Filter node: routes only `urgent` and `priority` emails, drops all other categories silently
-- [x] ✅ Dynamic recipient lookup against Supabase `users` by `routed_role`
+- [x] ✅ Dynamic recipient lookup against Supabase `users` by `routed_role` (with `alwaysOutputData: true` fallback handling)
 - [x] ✅ Message formatting with E.164 phone normalization, category indicators (`🔴`/`🟠`), body truncation (150 chars), and voice review placeholder link
 - [x] ✅ Twilio WhatsApp dispatch relay + masked phone number logging in Supabase `audit_log` (`whatsapp_notified`)
 - [x] ✅ Graceful empty-state handling when no recipient user exists (`whatsapp_skipped_no_recipient`)
-- [x] ✅ Tested end-to-end across urgent, priority, no-recipient, and non-urgent email flows
+- [x] ✅ Verified across all 5 test scenarios (urgent director, priority director, urgent progressor role-variety, missing role accountant, non-urgent read_later)
 
 ## 7. Voice Integration (in scope, on hold)
 - [ ] ⬜ TTS for hearing email content
