@@ -90,12 +90,14 @@ export function VoiceEmailView({
   const [showTextFallback, setShowTextFallback] = useState<boolean>(false)
   const [micPermissionDenied, setMicPermissionDenied] = useState<boolean>(false)
 
-  // Audio elements
+  // Audio elements & Playback Control
   const activeAudioRef = useRef<HTMLAudioElement | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const isRecordingRef = useRef<boolean>(false)
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const playbackSeqRef = useRef<number>(0)
+  const hasAutoPlayedRef = useRef<boolean>(false)
 
   const [isPending, startTransition] = useTransition()
 
@@ -134,11 +136,29 @@ export function VoiceEmailView({
     }
   }, [email.id])
 
-  // 2. Play TTS Audio helper
+  // Stop any ongoing audio playback immediately
+  const stopAudio = () => {
+    // Invalidate in-flight TTS requests
+    playbackSeqRef.current++
+
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause()
+      activeAudioRef.current.currentTime = 0
+      activeAudioRef.current = null
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
+    speechUtteranceRef.current = null
+    setUiState((prev) => (prev === 'speaking' ? 'idle' : prev))
+  }
+
+  // 2. Play TTS Audio helper (strictly sequential, never overlapping)
   const playTTS = async (textToSpeak: string, onEndCallback?: () => void) => {
     if (!textToSpeak.trim()) return
 
     stopAudio()
+    const currentSeq = ++playbackSeqRef.current
     setUiState('speaking')
 
     try {
@@ -155,6 +175,11 @@ export function VoiceEmailView({
         }),
       })
 
+      // If a newer playback or stop was requested while fetching, abort
+      if (playbackSeqRef.current !== currentSeq) {
+        return
+      }
+
       if (!res.ok) {
         throw new Error('TTS request failed')
       }
@@ -162,71 +187,72 @@ export function VoiceEmailView({
       const contentType = res.headers.get('content-type') || ''
       if (contentType.includes('audio/mpeg') || contentType.includes('audio/wav')) {
         const blob = await res.blob()
+        if (playbackSeqRef.current !== currentSeq) return
+
         const audioUrl = URL.createObjectURL(blob)
         const audio = new Audio(audioUrl)
         activeAudioRef.current = audio
 
         audio.onended = () => {
-          setUiState('idle')
-          if (onEndCallback) onEndCallback()
+          if (playbackSeqRef.current === currentSeq) {
+            setUiState('idle')
+            activeAudioRef.current = null
+            if (onEndCallback) onEndCallback()
+          }
         }
 
         audio.onerror = () => {
-          setUiState('idle')
-          useBrowserTTSFallback(textToSpeak, onEndCallback)
+          if (playbackSeqRef.current === currentSeq) {
+            console.warn('[Audio play error, falling back to browser speech]')
+            useBrowserTTSFallback(textToSpeak, currentSeq, onEndCallback)
+          }
         }
 
         await audio.play()
       } else {
-        // Use browser speech synthesis
-        useBrowserTTSFallback(textToSpeak, onEndCallback)
+        // Explicit browser speech synthesis response
+        useBrowserTTSFallback(textToSpeak, currentSeq, onEndCallback)
       }
     } catch (err) {
-      console.warn('[TTS network error, falling back to browser speech]', err)
-      useBrowserTTSFallback(textToSpeak, onEndCallback)
+      if (playbackSeqRef.current === currentSeq) {
+        console.warn('[TTS network error, falling back to browser speech]', err)
+        useBrowserTTSFallback(textToSpeak, currentSeq, onEndCallback)
+      }
     }
   }
 
   // Browser Speech Synthesis Fallback
-  const useBrowserTTSFallback = (text: string, onEnd?: () => void) => {
+  const useBrowserTTSFallback = (text: string, seq: number, onEnd?: () => void) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
-      setUiState('idle')
+      if (playbackSeqRef.current === seq) setUiState('idle')
       return
     }
+
+    if (playbackSeqRef.current !== seq) return
 
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = 'en-GB'
     utterance.rate = 1.0
     utterance.onend = () => {
-      setUiState('idle')
-      if (onEnd) onEnd()
+      if (playbackSeqRef.current === seq) {
+        setUiState('idle')
+        if (onEnd) onEnd()
+      }
     }
     utterance.onerror = () => {
-      setUiState('idle')
+      if (playbackSeqRef.current === seq) {
+        setUiState('idle')
+      }
     }
     speechUtteranceRef.current = utterance
     window.speechSynthesis.speak(utterance)
   }
 
-  // Stop any ongoing audio playback
-  const stopAudio = () => {
-    if (activeAudioRef.current) {
-      activeAudioRef.current.pause()
-      activeAudioRef.current.currentTime = 0
-      activeAudioRef.current = null
-    }
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel()
-    }
-    if (uiState === 'speaking') {
-      setUiState('idle')
-    }
-  }
-
-  // 3. Auto-play original email body on load (if not locked)
+  // 3. Auto-play original email body on load (guarded to run exactly once per page load)
   useEffect(() => {
-    if (isLocked) return
+    if (isLocked || hasAutoPlayedRef.current) return
+    hasAutoPlayedRef.current = true
 
     const introText = email.body_text
       ? `Email from ${email.from_name || 'sender'}. Subject: ${email.subject || 'No subject'}. ${email.body_text}`
@@ -482,25 +508,82 @@ export function VoiceEmailView({
       return
     }
 
-    // E. Dictation (Fallback for free-form speech)
-    if (dictationText) {
-      setDraftText(dictationText)
-      setWasDiscarded(false)
-
+    // E. Manual Direct Save (from text fallback)
+    if (action === 'dictation') {
+      const textToSave = command.dictationText || draftText
       startTransition(async () => {
         await saveDraftAction({
           emailId: email.id,
           draftId: draft?.id,
-          editedText: dictationText,
+          editedText: textToSave,
+          via: 'voice',
+        })
+        setFeedback({
+          type: 'success',
+          message: 'Draft saved.',
+        })
+      })
+      return
+    }
+
+    // F. Apply Edit (Spoken instruction / dictation incorporated contextually into draft)
+    const editInstruction = command.editInstruction || rawText
+    if (editInstruction && editInstruction.trim()) {
+      setUiState('processing')
+      setFeedback({
+        type: 'info',
+        message: `Applying edit: "${editInstruction}"...`,
+      })
+
+      try {
+        const rewriteRes = await fetch('/api/voice/rewrite', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-voice-token': token,
+          },
+          body: JSON.stringify({
+            currentDraft: draftText || email.body_text || '',
+            instruction: 'apply_edit',
+            spokenInstruction: editInstruction,
+            routedRole: email.routed_role,
+            emailContext: {
+              from_name: email.from_name,
+              from_address: email.from_address,
+              subject: email.subject,
+              category: email.category,
+              routed_role: email.routed_role,
+            },
+            token,
+            emailId: email.id,
+          }),
+        })
+
+        const rewriteData = await rewriteRes.json()
+        const newText = rewriteData.rewrittenText || draftText
+
+        setDraftText(newText)
+        setWasDiscarded(false)
+
+        // Save updated draft to Supabase using shared action
+        await saveDraftAction({
+          emailId: email.id,
+          draftId: draft?.id,
+          editedText: newText,
           via: 'voice',
         })
 
         setFeedback({
           type: 'success',
-          message: `Saved dictation: "${dictationText}"`,
+          message: `Updated draft reply. Playing updated version back...`,
         })
-        await playTTS(`Saved your reply: ${dictationText}. Say "approve and send" when ready.`)
-      })
+
+        await playTTS(`Updated draft reply: ${newText}`)
+      } catch (err: any) {
+        console.error('[Apply Edit Error]', err)
+        setUiState('idle')
+        setFeedback({ type: 'error', message: 'Failed to apply edit to draft. Please try again.' })
+      }
     }
   }
 

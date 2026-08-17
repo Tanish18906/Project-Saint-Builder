@@ -5,12 +5,14 @@ export type VoiceActionType =
   | 'rewrite_technical'
   | 'approve_send'
   | 'discard'
+  | 'apply_edit'
   | 'dictation'
 
 export interface VoiceCommandResult {
   action: VoiceActionType
   rawText: string
   normalizedText: string
+  editInstruction?: string
   dictationText?: string
   feedbackMessage?: string
 }
@@ -36,7 +38,7 @@ export function normalizeSpeech(text: string): string {
 
 /**
  * Fast, predictable string pattern matching for fixed voice command phrases.
- * Anything not matching the fixed list is treated as dictation.
+ * Anything not matching the fixed list is treated as an edit instruction to apply.
  */
 export function parseVoiceCommand(transcript: string): VoiceCommandResult {
   const rawText = (transcript || '').trim()
@@ -44,9 +46,10 @@ export function parseVoiceCommand(transcript: string): VoiceCommandResult {
 
   if (!normalized) {
     return {
-      action: 'dictation',
+      action: 'apply_edit',
       rawText,
       normalizedText: '',
+      editInstruction: '',
       dictationText: '',
     }
   }
@@ -152,12 +155,13 @@ export function parseVoiceCommand(transcript: string): VoiceCommandResult {
     }
   }
 
-  // 7. Dictation: Any other spoken words become the new edited text directly
+  // 7. Non-command speech: Apply spoken instruction as an edit to the draft
   return {
-    action: 'dictation',
+    action: 'apply_edit',
     rawText,
     normalizedText: normalized,
+    editInstruction: rawText,
     dictationText: rawText,
-    feedbackMessage: 'Updated draft reply from dictation.',
+    feedbackMessage: 'Applying edit to draft...',
   }
 }
