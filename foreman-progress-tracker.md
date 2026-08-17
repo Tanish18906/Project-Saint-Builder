@@ -72,10 +72,18 @@ Last updated: 2026-08-17
 - [x] ✅ Graceful empty-state handling when no recipient user exists (`whatsapp_skipped_no_recipient`)
 - [x] ✅ Verified across all 5 test scenarios (urgent director, priority director, urgent progressor role-variety, missing role accountant, non-urgent read_later)
 
-## 7. Voice Integration (in scope, on hold)
-- [ ] ⬜ TTS for hearing email content
-- [ ] ⬜ STT / voice command handling
-- [ ] ⬜ Approach decided (live listening vs WhatsApp voice note + Whisper)
+## 7. Voice Integration (Frontend Route: `/voice/[email_id]`)
+- [x] ✅ Mobile-first, audio-first standalone route built (`app/voice/[email_id]/page.tsx` + `src/components/VoiceEmailView.tsx`)
+- [x] ✅ Signed HMAC-SHA256 token verification (`src/lib/voice-token.ts`) with email ID matching, expiration checks, and friendly invalid/expired state
+- [x] ✅ Middleware updated to bypass `/voice` and `/api/voice` from mandatory Supabase Auth sessions
+- [x] ✅ Server-side TTS API route (`/api/voice/tts`) using OpenAI TTS (`tts-1`) with Web Speech API browser fallback
+- [x] ✅ Server-side STT API route (`/api/voice/stt`) using OpenAI Whisper (`whisper-1`) with MediaRecorder client capture
+- [x] ✅ Tone-aware AI rewrite API route (`/api/voice/rewrite`) supporting formal, shorter, and technical voice commands with placeholder preservation
+- [x] ✅ Fixed command parser (`src/lib/voice-commands.ts`) for "read the draft", "make it more formal/shorter/technical", "approve and send", "discard", and free dictation
+- [x] ✅ Reused existing `saveDraftAction`, `approveAndSendAction`, and `discardDraftAction` without duplicating database write logic
+- [x] ✅ Post-approval lockdown enforced (disables push-to-talk, renders read-only status and approver metadata)
+- [x] ✅ Fallback "Show text instead" drawer and microphone permission denied handling
+- [ ] ⬜ **Follow-up (n8n Workflow 3)**: Replace placeholder voice link in WhatsApp dispatch with real signed token generation
 
 ## 8. Roles & Permissions (in scope, on hold — waiting on client for real user list)
 - [ ] ⬜ Real user list/roles confirmed by client

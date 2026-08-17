@@ -7,6 +7,7 @@ interface SaveDraftParams {
   emailId: string
   draftId?: string | null
   editedText: string
+  via?: 'dashboard' | 'voice'
 }
 
 interface ApproveSendParams {
@@ -14,17 +15,19 @@ interface ApproveSendParams {
   draftId?: string | null
   editedText: string
   wasDiscarded?: boolean
+  via?: 'dashboard' | 'voice'
 }
 
 interface DiscardDraftParams {
   emailId: string
   draftId?: string | null
+  via?: 'dashboard' | 'voice'
 }
 
 /**
  * 1. Save Draft Action: Updates edited_text without changing status.
  */
-export async function saveDraftAction({ emailId, draftId, editedText }: SaveDraftParams) {
+export async function saveDraftAction({ emailId, draftId, editedText, via = 'dashboard' }: SaveDraftParams) {
   try {
     const supabase = await createClient()
     const {
@@ -70,10 +73,12 @@ export async function saveDraftAction({ emailId, draftId, editedText }: SaveDraf
       details: {
         text_length: editedText.length,
         saved_at: new Date().toISOString(),
+        via,
       },
     })
 
     revalidatePath(`/emails/${emailId}`)
+    revalidatePath(`/voice/${emailId}`)
     revalidatePath('/')
     return { success: true, draftId: activeDraftId }
   } catch (err: any) {
@@ -91,6 +96,7 @@ export async function approveAndSendAction({
   draftId,
   editedText,
   wasDiscarded = false,
+  via = 'dashboard',
 }: ApproveSendParams) {
   try {
     const supabase = await createClient()
@@ -168,10 +174,12 @@ export async function approveAndSendAction({
         draft_type: draftType,
         was_discarded: wasDiscarded,
         approved_at: nowIso,
+        via,
       },
     })
 
     revalidatePath(`/emails/${emailId}`)
+    revalidatePath(`/voice/${emailId}`)
     revalidatePath('/')
     return { success: true, draftType, draftId: activeDraftId }
   } catch (err: any) {
@@ -183,7 +191,7 @@ export async function approveAndSendAction({
 /**
  * 3. Discard Draft Action: Clears draft state and logs discarded action.
  */
-export async function discardDraftAction({ emailId, draftId }: DiscardDraftParams) {
+export async function discardDraftAction({ emailId, draftId, via = 'dashboard' }: DiscardDraftParams) {
   try {
     const supabase = await createClient()
     const {
@@ -207,10 +215,12 @@ export async function discardDraftAction({ emailId, draftId }: DiscardDraftParam
       action: 'discarded',
       details: {
         discarded_at: new Date().toISOString(),
+        via,
       },
     })
 
     revalidatePath(`/emails/${emailId}`)
+    revalidatePath(`/voice/${emailId}`)
     revalidatePath('/')
     return { success: true }
   } catch (err: any) {

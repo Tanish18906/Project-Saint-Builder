@@ -5,6 +5,13 @@ import type { Database } from '@/types/database'
 export async function updateSession(request: NextRequest) {
   const isLoginPage = request.nextUrl.pathname.startsWith('/login')
   const isAuthCallback = request.nextUrl.pathname.startsWith('/auth')
+  const isPublicVoice =
+    request.nextUrl.pathname.startsWith('/voice') || request.nextUrl.pathname.startsWith('/api/voice')
+
+  // If on voice page or voice API: allow immediately without dashboard login session
+  if (isPublicVoice) {
+    return NextResponse.next({ request })
+  }
 
   // Fast path: Check if any Supabase auth cookies exist
   const allCookies = request.cookies.getAll()
