@@ -8,7 +8,6 @@
 An intelligent email management, triage, AI reply generation, and human-in-the-loop approval system designed for **Allsaints Builders**. The platform monitors dual corporate inboxes, automatically categorizes incoming emails, routes them by operational roles, drafts context-aware replies via OpenAI, and coordinates email dispatch upon dashboard approval.
 
 ---
-
 ## 🏗️ System Architecture
 
 The project follows a decoupled, event-driven architecture using **Supabase** as the single source of truth between the automation engine and the user interface.
@@ -19,44 +18,45 @@ The project follows a decoupled, event-driven architecture using **Supabase** as
 │    • info@allsaintsbuilders.com (Directors / Admin)    │
 │    • team@allsaintsbuilders.com (Progressor / Ops)     │
 └───────────────────────────┬────────────────────────────┘
-                            │ (IMAP Polling / Push)
+                            │ (IMAP Polling / Ingest)
                             ▼
 ┌────────────────────────────────────────────────────────┐
-│                      n8n Engine                        │
+│                  n8n Automation Engine                 │
 │   1. Extracts Email & Metadata (Message-ID, Headers)   │
-│   2. OpenAI: Categorizes & Assigns Role                │
-│   3. OpenAI: Drafts Contextual Response                │
-│   4. Writes Email & Draft to Supabase                  │
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
+│   2. OpenAI GPT-4o: Categorizes & Assigns Role         │
+│   3. OpenAI GPT-4o: Drafts Contextual Response         │
+│   4. Writes Email, Classification & Draft to Supabase  │
+└───────────────┬──────────────────────────┬─────────────┘
+                │                          │
+                ▼                          ▼ (Urgent / Priority)
+┌───────────────────────────────┐ ┌───────────────────────────────┐
+│       Supabase Database       │ │   n8n WhatsApp Workflow 3     │
+│ • accounts, users, emails,    │ │ • Role recipient lookup       │
+│   drafts, audit_log           │ │ • HMAC-SHA256 Voice Link gen  │
+│ • pg_net database triggers    │ │ • Twilio WhatsApp dispatch    │
+└───────┬───────────────▲───────┘ └──────────────┬────────────────┘
+        │ (Realtime WS) │ (Approve/Edit)         │ (WhatsApp alert + link)
+        ▼               │                        ▼
+┌───────────────────────────────┐ ┌───────────────────────────────┐
+│    Review Dashboard UI        │ │  Mobile Voice Review Route    │
+│ • Inbox feed & Triage tags    │ │ • /voice/[email_id]?token=... │
+│ • Draft editor & auto-tagging │ │ • OpenAI TTS / Whisper STT    │
+│ • Post-approval lockdown      │ │ • Voice AI rewrites & actions │
+└───────────────┬───────────────┘ └──────────────┬────────────────┘
+                │ (Status -> 'approved')         │ (Approve & Send via voice)
+                └───────────────┬────────────────┘
+                                │
+                                ▼
 ┌────────────────────────────────────────────────────────┐
-│                   Supabase Database                    │
-│   • Tables: accounts, users, emails, drafts, audit_log │
-│   • Row Level Security (RLS) enabled                   │
-│   • Webhook: status = 'approved' -> triggers n8n       │
-└─────────────────────┬───────────────────▲──────────────┘
-                      │ (Realtime / REST) │ (Approve / Edit / Discard)
-                      ▼                   │
+│            Supabase Approval Webhook Trigger           │
+└───────────────────────────────┬────────────────────────┘
+                                │ (HTTP POST)
+                                ▼
 ┌────────────────────────────────────────────────────────┐
-│                   Review Dashboard                     │
-│   • Triage & Categorized Email Feeds                   │
-│   • In-place Draft Review, Editing & Re-writing        │
-│   • Single-click Approval Workflow                     │
-│   • Audit Trail Inspection                             │
-└────────────────────────────────────────────────────────┘
-                            │
-                            │ (Status changed to 'approved')
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│           Supabase Database Webhook Trigger            │
-└───────────────────────────┬────────────────────────────┘
-                            │ (HTTP POST)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│                  n8n SMTP Dispatch                     │
+│             n8n Workflow 2: SMTP Dispatch              │
 │   • Sends reply with In-Reply-To & References headers  │
 │   • Updates Supabase email & draft status to 'sent'    │
+│   • Logs delivery event in audit_log                   │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -69,7 +69,7 @@ The project codebase is organized across dedicated feature branches:
 - **`main`**: Production-ready orchestrations and unified codebase.
 - **`backend-supabase`**: Supabase migrations, database schemas, RLS policies, seed data, and pg_net webhooks.
 - **`n8n-automation`**: n8n workflow JSON templates, prompt engineering, and email integration pipelines.
-- **`frontend`**: Staff review dashboard, role-based interfaces, and approval UI.
+- **`frontend`**: Staff review dashboard, role-based interfaces, voice review portal, and approval UI.
 
 ---
 
@@ -78,14 +78,16 @@ The project codebase is organized across dedicated feature branches:
 1. **Ingestion**: An email lands in `info@allsaintsbuilders.com` or `team@allsaintsbuilders.com`.
 2. **Detection & Ingest**: n8n IMAP trigger captures the message, preserving the critical RFC 822 `Message-ID` for thread chaining.
 3. **AI Classification**: OpenAI classifies the message into domain-specific categories (`urgent`, `priority`, `read_later`, `finance_accounts`, `contracts`, `nph_job_update`, `other`) and routes it to the matching role (`director`, `senior_admin`, `progressor`, `accountant`).
-4. **Draft Generation**: OpenAI generates a suggested professional response.
-5. **Persistence**: n8n inserts the email into `emails` and the generated draft into `drafts`.
-6. **Review on Dashboard**: Staff members review incoming items:
+4. **Draft Generation**: OpenAI generates a suggested professional response with `[CONFIRM ...]` placeholders for unverified facts.
+5. **Persistence**: n8n inserts the email into `emails` and the generated draft into `drafts`, recording the classification event in `audit_log`.
+6. **WhatsApp Notification (Workflow 3)**: If the category is `urgent` or `priority`, the Supabase `AFTER INSERT` webhook fires n8n Workflow 3, looks up the assigned staff user by `routed_role`, generates a secure signed HMAC-SHA256 voice token, and sends an urgent WhatsApp alert via Twilio.
+7. **Review via Dashboard or Voice Portal**: Staff can review incoming items on the desktop/tablet dashboard or via the mobile-first voice portal (`/voice/[email_id]?token=...`):
    - **Approve as-is**: Stored as `ai_generated`.
    - **Edit & Approve**: Stored as `ai_edited`.
    - **Discard & Write Manual Reply**: Stored as `manual`.
-7. **Approval Webhook**: When status changes to `approved`, a Supabase database trigger makes an HTTP POST request to the n8n webhook endpoint via `pg_net`.
-8. **SMTP Dispatch & Threading**: n8n sends the approved email using Titan SMTP with `In-Reply-To` and `References` headers, updating status to `sent`.
+   - **Voice commands**: "Read the draft", "Make it more formal/shorter/technical", "Approve and send".
+8. **Approval Webhook**: When status changes to `approved`, a Supabase database trigger makes an HTTP POST request to the n8n webhook endpoint via `pg_net`.
+9. **SMTP Dispatch & Threading**: n8n sends the approved email using Titan SMTP with `In-Reply-To` and `References` headers, updating status to `sent` across DB and dashboard.
 
 ---
 
@@ -106,6 +108,7 @@ The project codebase is organized across dedicated feature branches:
 - **Row Level Security (RLS)**: Enabled across all tables with permissive base policies for initial integration, ready for strict role restrictions upon Supabase Auth wiring.
 - **Auto-timestamp**: `update_drafts_updated_at` trigger keeps `updated_at` timestamps accurate.
 - **Webhook Dispatch**: `tr_draft_approved_webhook` triggers `net.http_post` when `drafts.status` switches to `approved`.
+- **WhatsApp Webhook**: `tr_email_inserted_whatsapp_webhook` triggers `net.http_post` when new emails are inserted.
 
 ---
 
@@ -161,6 +164,7 @@ supabase db push
 2. **Draft Modification Testing**: Validate that transitions (`ai_generated` -> `ai_edited` -> `manual`) persist correct flags in `drafts.draft_type`.
 3. **Webhook Verification**: Confirm that setting `drafts.status = 'approved'` invokes the HTTP notification webhook.
 4. **Header & Thread Testing**: Verify that outbound emails contain valid `Message-ID`, `In-Reply-To`, and `References` headers for uninterrupted conversation threads in email clients.
+5. **WhatsApp & Voice Review Testing**: Verify email insert triggers WhatsApp notification, generates HMAC-SHA256 signed voice link, and enables voice control.
 
 ---
 
@@ -168,11 +172,12 @@ supabase db push
 
 - [x] Database schema design & Supabase migration
 - [x] Approval webhook trigger & audit log structure
-- [ ] n8n classification & OpenAI drafting workflow
-- [ ] Next.js / React staff review dashboard
-- [ ] Role-based Access Control (RBAC) via Supabase Auth
-- [ ] WhatsApp notifications for urgent/priority triage
-- [ ] Voice transcription / voice note review integration
+- [x] n8n classification & OpenAI drafting workflow (Workflow 1)
+- [x] n8n send on approval workflow (Workflow 2)
+- [x] Next.js / React staff review dashboard
+- [x] WhatsApp notifications for urgent/priority triage (Workflow 3)
+- [x] Voice transcription / voice note review integration (`/voice/[email_id]`)
+- [ ] Role-based Access Control (RBAC) via Supabase Auth (pending client staff list)
 
 ---
 
