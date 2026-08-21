@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     const apiKey = process.env.OPENAI_API_KEY
 
-    // If OpenAI API key is present, send audio to Whisper
+    // If OpenAI API key is present, send audio to Whisper with timeout
     if (apiKey) {
       try {
         const whisperFormData = new FormData()
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
 
         const openAiRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
           method: 'POST',
+          signal: AbortSignal.timeout(7500),
           headers: {
             Authorization: `Bearer ${apiKey}`,
           },
@@ -49,13 +50,13 @@ export async function POST(request: NextRequest) {
 
         const data = await openAiRes.json()
         return NextResponse.json({ text: (data.text || '').trim() })
-      } catch (openAiErr) {
-        console.warn('[OpenAI Whisper Fetch Exception]', openAiErr)
-        return NextResponse.json({ error: 'Whisper network error' }, { status: 500 })
+      } catch (openAiErr: any) {
+        console.warn('[OpenAI Whisper Fetch Exception]', openAiErr?.message || openAiErr)
+        return NextResponse.json({ error: 'Whisper network timeout or error', fallback: true }, { status: 500 })
       }
     }
 
-    // If no API key, return a mock response or indicate speech recognition fallback
+    // If no API key, return a fallback message
     return NextResponse.json({
       text: '',
       fallback: true,

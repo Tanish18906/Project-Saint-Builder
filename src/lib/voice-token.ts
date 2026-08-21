@@ -10,6 +10,7 @@ export interface VoiceTokenVerificationResult {
   valid: boolean
   emailId?: string
   error?: 'missing_token' | 'invalid_format' | 'invalid_signature' | 'expired' | 'email_mismatch'
+  errorMessage?: string
   payload?: VoiceTokenPayload
 }
 
@@ -42,7 +43,7 @@ export function generateVoiceToken(emailId: string, expiresInHours = 24): string
 
   const header = { alg: 'HS256', typ: 'JWT' }
   const payload: VoiceTokenPayload = {
-    email_id: emailId,
+    email_id: emailId.trim(),
     exp,
     iat: now,
   }
@@ -62,25 +63,40 @@ export function generateVoiceToken(emailId: string, expiresInHours = 24): string
 
 /**
  * Verifies a signed voice token and optionally matches it against the requested emailId.
+ * Guarantees a safe, non-throwing return object for every possible token input.
  */
 export function verifyVoiceToken(
   token: string | null | undefined,
   expectedEmailId?: string
 ): VoiceTokenVerificationResult {
-  if (!token || typeof token !== 'string') {
-    return { valid: false, error: 'missing_token' }
-  }
-
-  const parts = token.trim().split('.')
-  if (parts.length !== 3) {
-    return { valid: false, error: 'invalid_format' }
-  }
-
-  const [encodedHeader, encodedPayload, encodedSignature] = parts
-  const dataToSign = `${encodedHeader}.${encodedPayload}`
-
-  // Verify HMAC signature
   try {
+    if (!token || typeof token !== 'string') {
+      return { valid: false, error: 'missing_token', errorMessage: 'No voice token provided in request' }
+    }
+
+    // Clean up possible URL-encoded string or whitespace
+    let cleanToken = token.trim()
+    if (cleanToken.includes('%')) {
+      try {
+        cleanToken = decodeURIComponent(cleanToken)
+      } catch {
+        // use cleanToken as-is
+      }
+    }
+
+    const parts = cleanToken.split('.')
+    if (parts.length !== 3) {
+      return { valid: false, error: 'invalid_format', errorMessage: 'Malformed token structure (expected 3 parts)' }
+    }
+
+    const [encodedHeader, encodedPayload, encodedSignature] = parts
+    if (!encodedHeader || !encodedPayload || !encodedSignature) {
+      return { valid: false, error: 'invalid_format', errorMessage: 'Token header, payload, or signature missing' }
+    }
+
+    const dataToSign = `${encodedHeader}.${encodedPayload}`
+
+    // Verify HMAC signature
     const expectedSignature = crypto
       .createHmac('sha256', getSecret())
       .update(dataToSign)
@@ -88,20 +104,40 @@ export function verifyVoiceToken(
 
     const expectedSignatureB64 = base64UrlEncode(expectedSignature)
 
-    if (encodedSignature !== expectedSignatureB64) {
-      return { valid: false, error: 'invalid_signature' }
+    // Constant-time buffer comparison
+    const sigA = Buffer.from(encodedSignature, 'utf8')
+    const sigB = Buffer.from(expectedSignatureB64, 'utf8')
+    const isSignatureValid = sigA.length === sigB.length && crypto.timingSafeEqual(sigA, sigB)
+
+    if (!isSignatureValid) {
+      return { valid: false, error: 'invalid_signature', errorMessage: 'Cryptographic signature mismatch' }
     }
 
+    // Decode and parse payload JSON
     const payloadJson = base64UrlDecode(encodedPayload)
     const payload: VoiceTokenPayload = JSON.parse(payloadJson)
 
-    const now = Math.floor(Date.now() / 1000)
-    if (payload.exp && payload.exp < now) {
-      return { valid: false, error: 'expired', payload }
+    if (!payload || typeof payload !== 'object') {
+      return { valid: false, error: 'invalid_format', errorMessage: 'Token payload is not a valid JSON object' }
     }
 
-    if (expectedEmailId && payload.email_id !== expectedEmailId) {
-      return { valid: false, error: 'email_mismatch', payload }
+    const now = Math.floor(Date.now() / 1000)
+    if (payload.exp && typeof payload.exp === 'number' && payload.exp < now) {
+      return {
+        valid: false,
+        error: 'expired',
+        errorMessage: `Voice link expired ${Math.round((now - payload.exp) / 60)} minutes ago`,
+        payload,
+      }
+    }
+
+    if (expectedEmailId && payload.email_id !== expectedEmailId.trim()) {
+      return {
+        valid: false,
+        error: 'email_mismatch',
+        errorMessage: 'Token is for a different email message',
+        payload,
+      }
     }
 
     return {
@@ -109,7 +145,11 @@ export function verifyVoiceToken(
       emailId: payload.email_id,
       payload,
     }
-  } catch (err) {
-    return { valid: false, error: 'invalid_format' }
+  } catch (err: any) {
+    return {
+      valid: false,
+      error: 'invalid_format',
+      errorMessage: err?.message || 'Error parsing token',
+    }
   }
 }

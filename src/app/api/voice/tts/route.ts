@@ -4,7 +4,7 @@ import { verifyVoiceToken } from '@/lib/voice-token'
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('x-voice-token')
-    const body = await request.json()
+    const body = await request.json().catch(() => ({}))
     const { text, token, emailId } = body
 
     const activeToken = token || authHeader
@@ -24,11 +24,16 @@ export async function POST(request: NextRequest) {
     const cleanText = text.trim()
     const apiKey = process.env.OPENAI_API_KEY
 
-    // If OpenAI API key is configured, stream real TTS audio
+    // If OpenAI API key is configured, stream real TTS audio with strict timeout
     if (apiKey) {
       try {
         let openAiRes = await fetch('https://api.openai.com/v1/audio/speech', {
           method: 'POST',
+          // Measured against the real API: synthesizing a full email body (~450 chars)
+          // routinely takes 4.7-6.7s, well past a 4.5s timeout. Emails/drafts can run
+          // longer still, so this needs real headroom rather than a value tuned for
+          // short confirmation phrases.
+          signal: AbortSignal.timeout(12000),
           headers: {
             Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
@@ -44,11 +49,9 @@ export async function POST(request: NextRequest) {
 
         // Fallback retry with base tts-1 if gpt-4o-mini-tts is not yet provisioned on this key
         if (!openAiRes.ok) {
-          const errText = await openAiRes.text()
-          console.warn('[OpenAI gpt-4o-mini-tts Error, attempting fallback]', errText)
-          
           openAiRes = await fetch('https://api.openai.com/v1/audio/speech', {
             method: 'POST',
+            signal: AbortSignal.timeout(12000),
             headers: {
               Authorization: `Bearer ${apiKey}`,
               'Content-Type': 'application/json',
@@ -62,32 +65,26 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        if (!openAiRes.ok) {
-          const errText = await openAiRes.text()
-          console.warn('[OpenAI TTS Error]', errText)
-          // Fall back to client Web Speech API
-          return NextResponse.json({ useBrowserSpeech: true, text: cleanText })
+        if (openAiRes.ok) {
+          const audioBuffer = await openAiRes.arrayBuffer()
+          return new NextResponse(audioBuffer, {
+            status: 200,
+            headers: {
+              'Content-Type': 'audio/mpeg',
+              'Content-Length': audioBuffer.byteLength.toString(),
+              'Cache-Control': 'public, max-age=3600',
+            },
+          })
         }
-
-        const audioBuffer = await openAiRes.arrayBuffer()
-        return new NextResponse(audioBuffer, {
-          status: 200,
-          headers: {
-            'Content-Type': 'audio/mpeg',
-            'Content-Length': audioBuffer.byteLength.toString(),
-            'Cache-Control': 'public, max-age=3600',
-          },
-        })
       } catch (openAiErr) {
         console.warn('[OpenAI TTS Fetch Exception, falling back to browser speech]', openAiErr)
-        return NextResponse.json({ useBrowserSpeech: true, text: cleanText })
       }
     }
 
-    // Fallback: Instruct client to use Web Speech API
+    // Fallback: Instruct client to use Web Speech API immediately without hanging
     return NextResponse.json({ useBrowserSpeech: true, text: cleanText })
   } catch (err: any) {
     console.error('[API: /api/voice/tts Error]', err)
-    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: err.message || 'Internal server error', useBrowserSpeech: true }, { status: 500 })
   }
 }

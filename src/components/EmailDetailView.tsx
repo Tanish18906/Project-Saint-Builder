@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useTransition, useEffect } from 'react'
+import DOMPurify from 'dompurify'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { CategoryBadge } from '@/components/CategoryBadge'
@@ -364,7 +365,11 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
               {email.body_html ? (
                 <div
                   className="prose prose-sm max-w-none text-[#1c1a17] leading-relaxed break-words"
-                  dangerouslySetInnerHTML={{ __html: email.body_html }}
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(email.body_html, {
+                      USE_PROFILES: { html: true },
+                    }),
+                  }}
                 />
               ) : (
                 <div className="text-sm text-[#1c1a17] leading-relaxed whitespace-pre-wrap font-sans bg-[#f5f1e8]/30 p-4 rounded border border-[#e8e2d4]">

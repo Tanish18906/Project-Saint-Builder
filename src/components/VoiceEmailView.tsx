@@ -107,6 +107,17 @@ export function VoiceEmailView({
   const isApproved = draft?.status === 'approved' || email.status === 'approved'
   const isLocked = isApproved || isSent
 
+  // Sync state if initial server props change
+  useEffect(() => {
+    if (initialDraft) {
+      setDraft(initialDraft)
+      const text = initialDraft.edited_text || initialDraft.ai_generated_text || ''
+      if (text) {
+        setDraftText(text)
+      }
+    }
+  }, [initialDraft])
+
   // 1. Supabase Realtime Subscription
   useEffect(() => {
     const supabase = createClient()
@@ -124,8 +135,9 @@ export function VoiceEmailView({
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const updated = payload.new as any
             setDraft(updated)
-            if (updated.edited_text || updated.ai_generated_text) {
-              setDraftText(updated.edited_text || updated.ai_generated_text || '')
+            const text = updated.edited_text || updated.ai_generated_text || ''
+            if (text) {
+              setDraftText(text)
             }
           }
         }
@@ -154,17 +166,25 @@ export function VoiceEmailView({
     setUiState((prev) => (prev === 'speaking' ? 'idle' : prev))
   }
 
-  // 2. Play TTS Audio helper (strictly sequential, handles autoplay policies)
+  // 2. Play TTS Audio helper (strictly sequential, handles autoplay policies with timeouts)
   const playTTS = async (textToSpeak: string, onEndCallback?: () => void) => {
     if (!textToSpeak.trim()) return
+    // Never start/resume playback while the mic is actively recording — doing so
+    // lets the speaker's own audio (e.g. the original email being read aloud)
+    // bleed into the recording and get transcribed back as if it were the user's
+    // spoken reply, corrupting the draft with the email body.
+    if (isRecordingRef.current) return
 
     stopAudio()
     const currentSeq = ++playbackSeqRef.current
-    setUiState('speaking')
 
     try {
       const res = await fetch('/api/voice/tts', {
         method: 'POST',
+        // Must stay comfortably above the server's own per-attempt OpenAI timeout
+        // (12s) plus a margin for a fast-fail-then-retry case, or this fetch aborts
+        // and falls back to browser speech before the server ever gets a real answer.
+        signal: AbortSignal.timeout(20000),
         headers: {
           'Content-Type': 'application/json',
           'x-voice-token': token,
@@ -180,6 +200,11 @@ export function VoiceEmailView({
       if (playbackSeqRef.current !== currentSeq) {
         return
       }
+      // Recording may have started while this fetch was in flight — don't start
+      // speaking into an active microphone capture.
+      if (isRecordingRef.current) {
+        return
+      }
 
       if (!res.ok) {
         throw new Error('TTS request failed')
@@ -193,6 +218,8 @@ export function VoiceEmailView({
         const audioUrl = URL.createObjectURL(blob)
         const audio = new Audio(audioUrl)
         activeAudioRef.current = audio
+
+        setUiState('speaking')
 
         audio.onended = () => {
           if (playbackSeqRef.current === currentSeq) {
@@ -216,31 +243,18 @@ export function VoiceEmailView({
           // Handle Browser Autoplay Policy restrictions
           if (playErr.name === 'NotAllowedError' || playErr.message?.includes('user')) {
             console.warn('[Autoplay prevented by browser security policy, awaiting user touch gesture]')
+            // Deliberately NOT using a window-wide click/touchstart/pointerdown listener here.
+            // Those are the same gesture types the "Hold to Speak" button uses to start
+            // recording — a global listener would fire from that same press and replay this
+            // TTS (the original email body) through the speaker while the mic is actively
+            // recording, causing Whisper to transcribe the email back into the draft.
+            // The dedicated "Tap here to listen" banner button below is the only way to resume.
             setAutoplayBlocked(true)
             setUiState('idle')
             setFeedback({
               type: 'info',
-              message: '🔊 Tap anywhere on the screen to play email audio.',
+              message: '🔊 Tap the button below to play email audio.',
             })
-
-            const unlockAudio = () => {
-              window.removeEventListener('click', unlockAudio)
-              window.removeEventListener('touchstart', unlockAudio)
-              window.removeEventListener('pointerdown', unlockAudio)
-              setAutoplayBlocked(false)
-              if (activeAudioRef.current) {
-                activeAudioRef.current
-                  .play()
-                  .then(() => setUiState('speaking'))
-                  .catch(() => playTTS(textToSpeak, onEndCallback))
-              } else {
-                playTTS(textToSpeak, onEndCallback)
-              }
-            }
-
-            window.addEventListener('click', unlockAudio, { once: true })
-            window.addEventListener('touchstart', unlockAudio, { once: true })
-            window.addEventListener('pointerdown', unlockAudio, { once: true })
             return
           } else {
             console.warn('[Audio play error, falling back to browser speech]', playErr)
@@ -291,29 +305,45 @@ export function VoiceEmailView({
     }
   }
 
-  // 3. Auto-play original email body on load (guarded to run exactly once per page load)
+  // Assistant-style intro script: who it's from, the full message, a clear "end of
+  // email" boundary, then a brief draft-ready mention (only if a draft actually
+  // exists). Single shared builder so the auto-play effect and the manual
+  // "tap to listen" retry button can never drift into two different scripts.
+  const buildIntroText = () => {
+    const fromDisplay = email.from_name || email.from_address
+    const subjectText = email.subject || 'No subject'
+    const bodyText = email.body_text ? email.body_text : 'No message text was included.'
+    const hasDraft = Boolean(initialDraft && (initialDraft.edited_text || initialDraft.ai_generated_text))
+
+    const parts = [
+      `You've received an email from ${fromDisplay}, regarding: ${subjectText}.`,
+      `Here's the message: ${bodyText}`,
+      `That's the end of the email.`,
+    ]
+
+    if (hasDraft) {
+      parts.push(`There's a draft reply ready — say "read the draft" to hear it, or you can start dictating changes now.`)
+    }
+
+    return parts.join(' ')
+  }
+
+  // 3. Auto-play assistant-style intro on load
   useEffect(() => {
-    if (isLocked || hasAutoPlayedRef.current) return
-    hasAutoPlayedRef.current = true
+    if (isLocked) return
 
-    const introText = email.body_text
-      ? `Email from ${email.from_name || 'sender'}. Subject: ${email.subject || 'No subject'}. ${email.body_text}`
-      : `Email from ${email.from_name || 'sender'}. Subject: ${email.subject || 'No subject'}. No text body provided.`
-
-    // Small delay to allow page render
     const timer = setTimeout(() => {
       setFeedback({
         type: 'info',
-        message: 'Playing original email... Hold button below to speak a command or dictate reply.',
+        message: 'Playing your email... Hold button below to speak a command or dictate reply.',
       })
-      playTTS(introText)
-    }, 600)
+      playTTS(buildIntroText())
+    }, 400)
 
     return () => {
       clearTimeout(timer)
-      stopAudio()
     }
-  }, [])
+  }, [email.id, isLocked])
 
   // 4. Push-to-Talk Handlers
   const startRecording = async () => {
@@ -380,6 +410,7 @@ export function VoiceEmailView({
 
       const sttRes = await fetch('/api/voice/stt', {
         method: 'POST',
+        signal: AbortSignal.timeout(8500),
         body: formData,
       })
 
@@ -398,7 +429,7 @@ export function VoiceEmailView({
 
       setLastTranscript(transcript)
 
-      // Parse Command vs Dictation
+      // Parse Command vs Dictation with intent matching
       const command = parseVoiceCommand(transcript)
       await executeVoiceAction(command)
     } catch (err: any) {
@@ -412,16 +443,28 @@ export function VoiceEmailView({
   const executeVoiceAction = async (command: ReturnType<typeof parseVoiceCommand>) => {
     const { action, dictationText, rawText } = command
 
-    // A. Read Draft
+    // A. Read Draft (STRICTLY READ-ONLY: ZERO writes to database)
     if (action === 'read_draft') {
-      const currentDraftToRead = draftText || 'No reply draft has been created yet.'
+      const currentDraftToRead = (draftText || draft?.edited_text || draft?.ai_generated_text || '').trim()
+      if (!currentDraftToRead) {
+        setFeedback({ type: 'info', message: 'No draft reply has been generated yet for this message.' })
+        await playTTS('There is no draft reply generated yet for this email.')
+        return
+      }
       setFeedback({ type: 'info', message: `Reading draft reply: "${currentDraftToRead}"` })
-      await playTTS(`Here is the current draft reply: ${currentDraftToRead}`)
+      await playTTS(`Here is the draft reply: ${currentDraftToRead}`)
       return
     }
 
     // B. AI Tone Rewrite (Formal / Shorter / Technical)
     if (action === 'rewrite_formal' || action === 'rewrite_shorter' || action === 'rewrite_technical') {
+      const currentDraft = (draftText || draft?.edited_text || draft?.ai_generated_text || '').trim()
+      if (!currentDraft) {
+        setFeedback({ type: 'warning', message: 'Cannot rewrite: No draft reply exists yet.' })
+        await playTTS('No draft reply exists yet to rewrite. Speak to dictate your reply.')
+        return
+      }
+
       const instruction =
         action === 'rewrite_formal'
           ? 'formal'
@@ -438,12 +481,13 @@ export function VoiceEmailView({
       try {
         const rewriteRes = await fetch('/api/voice/rewrite', {
           method: 'POST',
+          signal: AbortSignal.timeout(7500),
           headers: {
             'Content-Type': 'application/json',
             'x-voice-token': token,
           },
           body: JSON.stringify({
-            currentDraft: draftText,
+            currentDraft: currentDraft,
             instruction,
             routedRole: email.routed_role,
             emailContext: {
@@ -459,7 +503,7 @@ export function VoiceEmailView({
         })
 
         const rewriteData = await rewriteRes.json()
-        const newText = rewriteData.rewrittenText || draftText
+        const newText = rewriteData.rewrittenText || currentDraft
 
         setDraftText(newText)
         setWasDiscarded(false)
@@ -538,6 +582,8 @@ export function VoiceEmailView({
     // F. Apply Edit (Spoken instruction / dictation incorporated contextually into draft)
     const editInstruction = command.editInstruction || rawText
     if (editInstruction && editInstruction.trim()) {
+      const currentDraft = (draftText || draft?.edited_text || draft?.ai_generated_text || '').trim()
+
       setUiState('processing')
       setFeedback({
         type: 'info',
@@ -545,14 +591,36 @@ export function VoiceEmailView({
       })
 
       try {
+        if (!currentDraft) {
+          // If no draft existed, spoken instruction becomes the initial draft text
+          setDraftText(editInstruction)
+          setWasDiscarded(false)
+
+          await saveDraftAction({
+            emailId: email.id,
+            draftId: draft?.id,
+            editedText: editInstruction,
+            via: 'voice',
+          })
+
+          setFeedback({
+            type: 'success',
+            message: 'Saved dictated reply. Playing back...',
+          })
+
+          await playTTS(`Draft reply created: ${editInstruction}`)
+          return
+        }
+
         const rewriteRes = await fetch('/api/voice/rewrite', {
           method: 'POST',
+          signal: AbortSignal.timeout(7500),
           headers: {
             'Content-Type': 'application/json',
             'x-voice-token': token,
           },
           body: JSON.stringify({
-            currentDraft: draftText || email.body_text || '',
+            currentDraft: currentDraft, // STRICTLY DRAFT TEXT — NEVER EMAIL BODY!
             instruction: 'apply_edit',
             spokenInstruction: editInstruction,
             routedRole: email.routed_role,
@@ -569,7 +637,7 @@ export function VoiceEmailView({
         })
 
         const rewriteData = await rewriteRes.json()
-        const newText = rewriteData.rewrittenText || draftText
+        const newText = rewriteData.rewrittenText || currentDraft
 
         setDraftText(newText)
         setWasDiscarded(false)
@@ -707,10 +775,7 @@ export function VoiceEmailView({
             type="button"
             onClick={() => {
               setAutoplayBlocked(false)
-              const introText = email.body_text
-                ? `Email from ${email.from_name || 'sender'}. Subject: ${email.subject || 'No subject'}. ${email.body_text}`
-                : `Email from ${email.from_name || 'sender'}. Subject: ${email.subject || 'No subject'}. No text body provided.`
-              playTTS(introText)
+              playTTS(buildIntroText())
             }}
             className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2a2723] text-[#f5f1e8] rounded-xl shadow-md flex items-center justify-center gap-2.5 text-xs font-semibold animate-pulse cursor-pointer border border-[#e8e2d4]"
           >

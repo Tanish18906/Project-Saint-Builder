@@ -4,7 +4,7 @@ import { verifyVoiceToken } from '@/lib/voice-token'
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('x-voice-token')
-    const body = await request.json()
+    const body = await request.json().catch(() => ({}))
     const { emailContext, currentDraft, instruction, routedRole, token, emailId } = body
 
     const activeToken = token || authHeader
@@ -81,6 +81,7 @@ ${toneInstructionText}`
       try {
         let openAiRes = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
+          signal: AbortSignal.timeout(6500),
           headers: {
             Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
@@ -95,13 +96,11 @@ ${toneInstructionText}`
           }),
         })
 
-        // Fallback retry with gpt-4o-mini / gpt-4o if gpt-5.4-mini model is not yet provisioned on this key
+        // Fallback retry with gpt-4o-mini if gpt-5.4-mini model is not yet provisioned on this key
         if (!openAiRes.ok) {
-          const errText = await openAiRes.text()
-          console.warn('[OpenAI gpt-5.4-mini Error, attempting fallback]', errText)
-
           openAiRes = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
+            signal: AbortSignal.timeout(6500),
             headers: {
               Authorization: `Bearer ${apiKey}`,
               'Content-Type': 'application/json',
@@ -123,21 +122,19 @@ ${toneInstructionText}`
           const cleanResult = rawResult.replace(/^```[a-z]*\s*/i, '').replace(/```$/g, '').trim()
           return NextResponse.json({ rewrittenText: cleanResult })
         }
-      } catch (openAiErr) {
-        console.warn('[OpenAI Chat Exception]', openAiErr)
+      } catch (openAiErr: any) {
+        console.warn('[OpenAI Chat Exception]', openAiErr?.message || openAiErr)
       }
     }
 
-    // Fallback heuristic rewrite if OpenAI API key is unavailable
+    // Fallback heuristic rewrite if OpenAI API key is unavailable or timed out
     let fallbackText = currentDraft.trim()
     const spokenInst = (body.spokenInstruction || body.instruction || '').trim()
 
     if (instruction === 'apply_edit') {
       if (fallbackText.includes('[CONFIRM') && spokenInst) {
-        // Replace the first placeholder bracket with the spoken text
         fallbackText = fallbackText.replace(/\[CONFIRM[^\]]*\]/, spokenInst)
       } else if (spokenInst) {
-        // Insert before sign-off if present, otherwise append
         if (fallbackText.includes('Best regards,')) {
           fallbackText = fallbackText.replace('Best regards,', `${spokenInst}\n\nBest regards,`)
         } else {
