@@ -109,6 +109,7 @@ function formatRelativeTime(dateString: string): string {
 export function InboxView({ initialEmails, accounts }: InboxViewProps) {
   const [emails, setEmails] = useState<EmailItem[]>(initialEmails)
   const [isRealtimeLive, setIsRealtimeLive] = useState<boolean>(false)
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false)
 
   const [selectedAccountId, setSelectedAccountId] = useState<string>('all')
   const [selectedRole, setSelectedRole] = useState<string>('all')
@@ -243,12 +244,16 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
     return emails.filter((e) => (e.status || '').toLowerCase() === 'drafted').length
   }, [emails])
 
-  const hasActiveFilters =
-    selectedAccountId !== 'all' ||
-    selectedRole !== 'all' ||
-    selectedCategory !== 'all' ||
-    selectedStatus !== 'all' ||
-    searchQuery.trim().length > 0
+  const activeFilterCount = useMemo(() => {
+    let count = 0
+    if (selectedAccountId !== 'all') count++
+    if (selectedRole !== 'all') count++
+    if (selectedCategory !== 'all') count++
+    if (selectedStatus !== 'all') count++
+    return count
+  }, [selectedAccountId, selectedRole, selectedCategory, selectedStatus])
+
+  const hasActiveFilters = activeFilterCount > 0 || searchQuery.trim().length > 0
 
   const resetFilters = () => {
     setSelectedAccountId('all')
@@ -261,9 +266,50 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
   return (
     <div className="space-y-4">
       {/* Top Filter Container */}
-      <div className="bg-white rounded-lg border border-[#e8e2d4] p-3.5 sm:p-4 shadow-sm space-y-3">
-        {/* Monitored Inbox Tabs & Live Status */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8e2d4] pb-2.5">
+      <div className="bg-white rounded-lg border border-[#e8e2d4] p-3 sm:p-4 shadow-sm space-y-3">
+        {/* Mobile Search & Filter Trigger Bar (Visible only on < md) */}
+        <div className="flex md:hidden items-center gap-2">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#6b6559]">
+              <Search className="h-4 w-4" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search sender, subject..."
+              className="w-full pl-9 pr-8 py-2 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] placeholder:text-[#6b6559]/50 focus:outline-none focus:ring-1 focus:ring-[#1c1a17] min-h-[44px]"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-[#6b6559] hover:text-[#1c1a17] cursor-pointer min-h-[44px]"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => setIsMobileFilterOpen(true)}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded border transition-colors cursor-pointer min-h-[44px] shrink-0 ${
+              activeFilterCount > 0
+                ? 'bg-[#1c1a17] text-[#f5f1e8] border-[#1c1a17]'
+                : 'bg-[#f5f1e8] text-[#1c1a17] border-[#e8e2d4] hover:bg-[#e8e2d4]'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            <span>Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-[#f5f1e8] text-[#1c1a17] font-semibold text-[10px] flex items-center justify-center ml-0.5">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Desktop Monitored Inbox Tabs & Live Status (Visible only on md+) */}
+        <div className="hidden md:flex flex-wrap items-center justify-between gap-3 border-b border-[#e8e2d4] pb-2.5">
           <div className="flex flex-wrap items-center gap-4 sm:gap-6">
             <button
               onClick={() => setSelectedAccountId('all')}
@@ -327,8 +373,8 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
           </div>
         </div>
 
-        {/* Search & Consolidated Filter Dropdowns (Role, Category, Status) */}
-        <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
+        {/* Desktop Search & Consolidated Filter Dropdowns (Visible only on md+) */}
+        <div className="hidden md:flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
           {/* Search Box */}
           <div className="relative flex-1 max-w-md">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#6b6559]">
@@ -417,6 +463,127 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
         </div>
       </div>
 
+      {/* Mobile Filter Bottom Sheet Modal */}
+      {isMobileFilterOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 transition-opacity"
+            onClick={() => setIsMobileFilterOpen(false)}
+          />
+
+          {/* Bottom Sheet Card */}
+          <div className="fixed inset-x-0 bottom-0 bg-white rounded-t-xl border-t border-[#e8e2d4] p-5 space-y-4 max-h-[85vh] overflow-y-auto shadow-2xl z-50 animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center justify-between border-b border-[#e8e2d4] pb-3">
+              <h3 className="text-sm font-bold text-[#1c1a17]">Filter inbox</h3>
+              <button
+                onClick={() => setIsMobileFilterOpen(false)}
+                className="p-1.5 text-xs text-[#6b6559] hover:text-[#1c1a17] min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Account Selector */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#1c1a17]">
+                Monitored inbox
+              </label>
+              <select
+                value={selectedAccountId}
+                onChange={(e) => setSelectedAccountId(e.target.value)}
+                className="w-full p-2.5 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] min-h-[44px]"
+              >
+                <option value="all">All monitored inboxes ({emails.length})</option>
+                {accounts.map((acc) => {
+                  const count = emails.filter((e) => e.account_id === acc.id).length
+                  return (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.display_name || acc.email_address} ({count})
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
+
+            {/* Role Selector */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#1c1a17]">
+                Role queue
+              </label>
+              <select
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+                className="w-full p-2.5 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] min-h-[44px]"
+              >
+                {ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Category Selector */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#1c1a17]">
+                Category
+              </label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full p-2.5 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] min-h-[44px]"
+              >
+                {CATEGORIES.map((cat) => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status Selector */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#1c1a17]">
+                Status
+              </label>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="w-full p-2.5 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] min-h-[44px]"
+              >
+                {STATUSES.map((stat) => (
+                  <option key={stat.value} value={stat.value}>
+                    {stat.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex items-center gap-2 pt-2 border-t border-[#e8e2d4]">
+              {hasActiveFilters && (
+                <button
+                  onClick={() => {
+                    resetFilters()
+                    setIsMobileFilterOpen(false)
+                  }}
+                  className="flex-1 py-2.5 px-3 text-xs font-medium text-[#6b6559] bg-[#f5f1e8] hover:bg-[#e8e2d4] rounded transition-colors min-h-[44px]"
+                >
+                  Reset filters
+                </button>
+              )}
+              <button
+                onClick={() => setIsMobileFilterOpen(false)}
+                className="flex-1 py-2.5 px-3 text-xs font-semibold text-[#f5f1e8] bg-[#1c1a17] hover:bg-[#2a2723] rounded transition-colors min-h-[44px]"
+              >
+                Apply filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Feed Section Header */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
@@ -473,53 +640,97 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
                     : 'border-[#e8e2d4]'
                 }`}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-1.5">
-                  {/* Sender & Monitored Account */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-normal text-sm text-[#1c1a17]">
+                {/* Mobile View: Subject first, then sender & timestamp, then badges (Clean stacked format) */}
+                <div className="sm:hidden space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-[#1c1a17] leading-snug">
+                      {email.subject || '(No Subject)'}
+                    </h3>
+                    <span
+                      title={new Date(email.received_at).toLocaleString('en-GB')}
+                      className="text-[11px] text-[#6b6559] shrink-0 pt-0.5"
+                    >
+                      {formatRelativeTime(email.received_at)}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs text-[#6b6559]">
+                    <span className="font-medium text-[#1c1a17]">
                       {email.from_name || email.from_address}
                     </span>
-                    {email.from_name && (
-                      <span className="text-xs text-[#6b6559]">
-                        &lt;{email.from_address}&gt;
-                      </span>
-                    )}
                     {email.accounts && (
-                      <span className="text-[11px] px-2 py-0.5 rounded bg-[#f5f1e8] text-[#6b6559] border border-[#e8e2d4] font-mono">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#f5f1e8] text-[#6b6559] border border-[#e8e2d4] font-mono">
                         {email.accounts.email_address}
                       </span>
                     )}
                   </div>
 
-                  {/* Badges & Relative Timestamp */}
-                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                     <CategoryBadge category={email.category} />
                     {email.routed_role && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#f5f1e8] text-[#1c1a17] border border-[#e8e2d4] capitalize">
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#f5f1e8] text-[#1c1a17] border border-[#e8e2d4] capitalize">
                         <User className="w-2.5 h-2.5 opacity-60" />
                         {email.routed_role.replace(/_/g, ' ')}
                       </span>
                     )}
                     <StatusBadge status={email.status} />
-                    <span
-                      title={new Date(email.received_at).toLocaleString('en-GB')}
-                      className="text-xs text-[#6b6559] flex items-center gap-1 pl-1"
-                    >
-                      <Clock className="w-3 h-3 opacity-60" />
-                      {formatRelativeTime(email.received_at)}
-                    </span>
                   </div>
+
+                  <p className="text-xs text-[#6b6559] line-clamp-2 leading-relaxed pt-0.5">
+                    {email.body_text || '(No text content)'}
+                  </p>
                 </div>
 
-                {/* Subject Line */}
-                <h3 className="text-sm font-semibold text-[#1c1a17] mb-1 leading-snug">
-                  {email.subject || '(No Subject)'}
-                </h3>
+                {/* Desktop/Tablet View (sm+): Horizontal alignment with high scanning density */}
+                <div className="hidden sm:block">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    {/* Sender & Monitored Account */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-normal text-sm text-[#1c1a17]">
+                        {email.from_name || email.from_address}
+                      </span>
+                      {email.from_name && (
+                        <span className="text-xs text-[#6b6559]">
+                          &lt;{email.from_address}&gt;
+                        </span>
+                      )}
+                      {email.accounts && (
+                        <span className="text-[11px] px-2 py-0.5 rounded bg-[#f5f1e8] text-[#6b6559] border border-[#e8e2d4] font-mono">
+                          {email.accounts.email_address}
+                        </span>
+                      )}
+                    </div>
 
-                {/* Body Preview */}
-                <p className="text-xs text-[#6b6559] line-clamp-2 leading-relaxed">
-                  {email.body_text || '(No text content)'}
-                </p>
+                    {/* Badges & Relative Timestamp */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <CategoryBadge category={email.category} />
+                      {email.routed_role && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#f5f1e8] text-[#1c1a17] border border-[#e8e2d4] capitalize">
+                          <User className="w-2.5 h-2.5 opacity-60" />
+                          {email.routed_role.replace(/_/g, ' ')}
+                        </span>
+                      )}
+                      <StatusBadge status={email.status} />
+                      <span
+                        title={new Date(email.received_at).toLocaleString('en-GB')}
+                        className="text-xs text-[#6b6559] flex items-center gap-1 pl-1"
+                      >
+                        <Clock className="w-3 h-3 opacity-60" />
+                        {formatRelativeTime(email.received_at)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Subject Line */}
+                  <h3 className="text-sm font-semibold text-[#1c1a17] mb-1 leading-snug">
+                    {email.subject || '(No Subject)'}
+                  </h3>
+
+                  {/* Body Preview */}
+                  <p className="text-xs text-[#6b6559] line-clamp-2 leading-relaxed">
+                    {email.body_text || '(No text content)'}
+                  </p>
+                </div>
               </Link>
             )
           })}

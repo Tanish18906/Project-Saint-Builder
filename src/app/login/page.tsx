@@ -71,7 +71,7 @@ export default function LoginPage() {
                   autoComplete="email"
                   required
                   placeholder="name@allsaintsbuilders.com"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-[#e8e2d4] rounded bg-white text-[#1c1a17] placeholder:text-[#6b6559]/50 focus:outline-none focus:ring-1 focus:ring-[#1c1a17] focus:border-[#1c1a17]"
+                  className="w-full pl-9 pr-3 py-2.5 text-sm border border-[#e8e2d4] rounded bg-white text-[#1c1a17] placeholder:text-[#6b6559]/50 focus:outline-none focus:ring-1 focus:ring-[#1c1a17] focus:border-[#1c1a17] min-h-[44px]"
                 />
               </div>
             </div>
@@ -94,7 +94,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   required
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-[#e8e2d4] rounded bg-white text-[#1c1a17] placeholder:text-[#6b6559]/50 focus:outline-none focus:ring-1 focus:ring-[#1c1a17] focus:border-[#1c1a17]"
+                  className="w-full pl-9 pr-3 py-2.5 text-sm border border-[#e8e2d4] rounded bg-white text-[#1c1a17] placeholder:text-[#6b6559]/50 focus:outline-none focus:ring-1 focus:ring-[#1c1a17] focus:border-[#1c1a17] min-h-[44px]"
                 />
               </div>
             </div>
@@ -102,7 +102,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isPending}
-              className="w-full mt-2 py-2.5 px-4 bg-[#1c1a17] hover:bg-[#2a2723] text-[#f5f1e8] font-medium text-sm rounded transition-colors disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full mt-2 py-3 px-4 bg-[#1c1a17] hover:bg-[#2a2723] text-[#f5f1e8] font-medium text-sm rounded transition-colors disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
             >
               {isPending ? (
                 <>

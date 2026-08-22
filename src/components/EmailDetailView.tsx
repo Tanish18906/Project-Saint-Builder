@@ -271,12 +271,12 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-20 lg:pb-0">
       {/* Top Header & Navigation */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 sm:p-3.5 rounded-lg border border-[#e8e2d4] shadow-sm">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-xs font-medium text-[#1c1a17] hover:text-[#6b6559] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-medium text-[#1c1a17] hover:text-[#6b6559] transition-colors cursor-pointer min-h-[44px] sm:min-h-0"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to inbox</span>
@@ -566,7 +566,7 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
 
             {/* Action Buttons or Locked State Banner */}
             {!isLocked ? (
-              <div className="flex flex-wrap items-center gap-2 pt-2">
+              <div className="hidden lg:flex flex-wrap items-center gap-2 pt-2">
                 <button
                   type="button"
                   onClick={handleApproveSend}
@@ -621,6 +621,45 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
           </div>
         </div>
       </div>
+
+      {/* Mobile Sticky Bottom Action Bar */}
+      {!isLocked && (
+        <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-sm border-t border-[#e8e2d4] p-3 z-40 shadow-lg flex lg:hidden items-center gap-2">
+          <button
+            type="button"
+            onClick={handleApproveSend}
+            disabled={isPending || !draftText.trim()}
+            className="flex-1 py-3 px-4 bg-[#1c1a17] hover:bg-[#2a2723] text-[#f5f1e8] text-xs font-semibold rounded transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+          >
+            {isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+            <span>Approve & Send</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={isPending || !draftText.trim()}
+            className="py-3 px-3.5 bg-white hover:bg-[#f5f1e8] border border-[#e8e2d4] text-[#1c1a17] text-xs font-medium rounded transition-colors disabled:opacity-50 flex items-center gap-1 cursor-pointer min-h-[44px]"
+          >
+            <Save className="w-4 h-4 text-[#6b6559]" />
+            <span className="hidden sm:inline">Save</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDiscard}
+            disabled={isPending}
+            className="py-3 px-3.5 bg-white hover:bg-[#f5f1e8] border border-[#e8e2d4] text-[#6b6559] hover:text-[#b91c1c] text-xs font-medium rounded transition-colors disabled:opacity-50 flex items-center gap-1 cursor-pointer min-h-[44px]"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Discard</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }
