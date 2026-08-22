@@ -271,15 +271,15 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Top Header & Navigation */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-lg border border-[#e8e2d4] shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 sm:p-3.5 rounded-lg border border-[#e8e2d4] shadow-sm">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-[#1c1a17] hover:text-[#6b6559] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-medium text-[#1c1a17] hover:text-[#6b6559] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Inbox</span>
+          <span>Back to inbox</span>
         </Link>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -301,21 +301,21 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
       </div>
 
       {/* Two Column Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Left Column: Original Email Content (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="lg:col-span-7 space-y-4">
           <div
             className={`bg-white rounded-lg border shadow-sm overflow-hidden ${
               isUrgent ? 'border-l-4 border-l-[#b91c1c] border-[#e8e2d4]' : 'border-[#e8e2d4]'
             }`}
           >
             {/* Email Meta Header */}
-            <div className="p-6 border-b border-[#e8e2d4] space-y-4">
-              <h1 className="text-xl font-bold text-[#1c1a17] leading-snug">
+            <div className="p-4 sm:p-5 border-b border-[#e8e2d4] space-y-3">
+              <h1 className="text-lg sm:text-xl font-bold text-[#1c1a17] leading-snug">
                 {email.subject || '(No Subject)'}
               </h1>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs pt-1">
                 <div>
                   <span className="text-[#6b6559] block text-[11px] font-medium">
                     From
@@ -358,8 +358,8 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
             </div>
 
             {/* Email Body Content */}
-            <div className="p-6">
-              <span className="text-[#6b6559] block text-[11px] font-medium mb-3">
+            <div className="p-4 sm:p-5">
+              <span className="text-[#6b6559] block text-[11px] font-medium mb-2.5">
                 Message body
               </span>
               {email.body_html ? (
@@ -372,7 +372,7 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
                   }}
                 />
               ) : (
-                <div className="text-sm text-[#1c1a17] leading-relaxed whitespace-pre-wrap font-sans bg-[#f5f1e8]/30 p-4 rounded border border-[#e8e2d4]">
+                <div className="text-sm text-[#1c1a17] leading-relaxed whitespace-pre-wrap font-sans bg-[#f5f1e8]/30 p-3.5 rounded border border-[#e8e2d4]">
                   {email.body_text || '(No text body available)'}
                 </div>
               )}
@@ -381,10 +381,10 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
         </div>
 
         {/* Right Column: AI Triage & Draft Actions Panel (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="lg:col-span-5 space-y-4">
           {/* Classification & Triage Summary Card */}
-          <div className="bg-white rounded-lg border border-[#e8e2d4] p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-[#e8e2d4] pb-3">
+          <div className="bg-white rounded-lg border border-[#e8e2d4] p-4 shadow-sm space-y-3">
+            <div className="flex items-center justify-between border-b border-[#e8e2d4] pb-2.5">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-600" />
                 <h2 className="text-xs font-semibold text-[#1c1a17]">
@@ -425,7 +425,7 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
           </div>
 
           {/* Reply Draft Panel */}
-          <div className="bg-white rounded-lg border border-[#e8e2d4] p-5 shadow-sm space-y-4">
+          <div className="bg-white rounded-lg border border-[#e8e2d4] p-4 shadow-sm space-y-3.5">
             <div className="flex items-center justify-between border-b border-[#e8e2d4] pb-3">
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-[#1c1a17]" />

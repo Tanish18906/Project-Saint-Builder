@@ -393,7 +393,7 @@ export function AuditLogView({ initialLogs }: AuditLogViewProps) {
                   return (
                     <tr key={log.id} className="hover:bg-[#f5f1e8]/30 transition-colors">
                       {/* Timestamp */}
-                      <td className="py-3.5 px-4 whitespace-nowrap text-[#6b6559]">
+                      <td className="py-2.5 px-3.5 whitespace-nowrap text-[#6b6559]">
                         <span
                           title={log.created_at ? new Date(log.created_at).toLocaleString('en-GB') : ''}
                           className="font-medium text-[#1c1a17]"
@@ -411,9 +411,9 @@ export function AuditLogView({ initialLogs }: AuditLogViewProps) {
                       </td>
 
                       {/* Action Badge */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
+                      <td className="py-2.5 px-3.5 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium border text-xs ${badge.bg} ${badge.text} ${badge.border}`}
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-medium border text-xs ${badge.bg} ${badge.text} ${badge.border}`}
                         >
                           <ActionIcon className="w-3 h-3" />
                           <span>{badge.label}</span>
@@ -421,11 +421,11 @@ export function AuditLogView({ initialLogs }: AuditLogViewProps) {
                       </td>
 
                       {/* Email Reference */}
-                      <td className="py-3.5 px-4 max-w-xs">
+                      <td className="py-2.5 px-3.5 max-w-xs">
                         {log.email_id ? (
                           <Link
                             href={`/emails/${log.email_id}`}
-                            className="group inline-flex items-center gap-1 text-[#1c1a17] hover:text-blue-700 font-medium"
+                            className="group inline-flex items-center gap-1 text-[#1c1a17] hover:underline font-medium"
                           >
                             <span className="truncate max-w-[220px]">
                               {log.emails?.subject || `Email (${log.email_id.slice(0, 8)})`}
@@ -443,11 +443,11 @@ export function AuditLogView({ initialLogs }: AuditLogViewProps) {
                       </td>
 
                       {/* Actor */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
+                      <td className="py-2.5 px-3.5 whitespace-nowrap">
                         {log.user_id && log.users ? (
                           <div className="flex items-center gap-1.5 text-[#1c1a17]">
                             <User className="w-3.5 h-3.5 text-[#6b6559]" />
-                            <span>{log.users.name || log.users.email || 'Staff User'}</span>
+                            <span>{log.users.name || log.users.email || 'Staff user'}</span>
                           </div>
                         ) : (
                           <div className="flex items-center gap-1.5 text-[#6b6559]">
@@ -458,7 +458,7 @@ export function AuditLogView({ initialLogs }: AuditLogViewProps) {
                       </td>
 
                       {/* Details */}
-                      <td className="py-3.5 px-4">{renderDetails(log.details, log.action)}</td>
+                      <td className="py-2.5 px-3.5">{renderDetails(log.details, log.action)}</td>
                     </tr>
                   )
                 })}

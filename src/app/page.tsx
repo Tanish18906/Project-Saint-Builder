@@ -83,7 +83,7 @@ export default async function HomePage() {
     <div className="min-h-screen bg-[#f5f1e8] text-[#1c1a17]">
       <Navbar userEmail={user?.email} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
         <InboxView initialEmails={emails as any} accounts={accounts} />
       </main>
     </div>

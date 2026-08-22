@@ -455,7 +455,7 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
           )}
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {filteredEmails.map((email) => {
             const cat = (email.category || '').toLowerCase()
             const isUrgent = cat === 'urgent'
@@ -465,7 +465,7 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
               <Link
                 key={email.id}
                 href={`/emails/${email.id}`}
-                className={`block bg-white rounded-lg border transition-all duration-150 p-4 shadow-sm hover:shadow hover:border-[#1c1a17]/50 group cursor-pointer ${
+                className={`block bg-white rounded-lg border transition-all duration-150 p-3.5 sm:p-4 shadow-sm hover:shadow hover:border-[#1c1a17]/50 group cursor-pointer ${
                   isUrgent
                     ? 'border-l-4 border-l-[#b91c1c] border-[#e8e2d4] bg-[#fef2f2]/30'
                     : isPriority
@@ -473,7 +473,7 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
                     : 'border-[#e8e2d4]'
                 }`}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-1.5">
                   {/* Sender & Monitored Account */}
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-normal text-sm text-[#1c1a17]">
@@ -512,7 +512,7 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
                 </div>
 
                 {/* Subject Line */}
-                <h3 className="text-sm font-semibold text-[#1c1a17] mb-1.5 leading-snug">
+                <h3 className="text-sm font-semibold text-[#1c1a17] mb-1 leading-snug">
                   {email.subject || '(No Subject)'}
                 </h3>
 
