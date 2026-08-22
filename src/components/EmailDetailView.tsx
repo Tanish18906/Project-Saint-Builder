@@ -154,10 +154,12 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
     minute: '2-digit',
   })
 
-  // 1. Save Draft Handler
+  // 1. Save Draft Handler (Optimistic)
   const handleSaveDraft = () => {
     if (isLocked) return
-    setFeedback(null)
+    const prevText = draftText
+    setFeedback({ type: 'success', message: 'Saving draft...' })
+
     startTransition(async () => {
       const res = await saveDraftAction({
         emailId: email.id,
@@ -166,7 +168,7 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
       })
 
       if (res.success) {
-        setFeedback({ type: 'success', message: 'Draft saved successfully without changing approval status.' })
+        setFeedback({ type: 'success', message: 'Draft saved successfully.' })
         if (res.draftId && !draft) {
           setDraft({
             id: res.draftId,
@@ -182,15 +184,32 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
           })
         }
       } else {
-        setFeedback({ type: 'error', message: res.error || 'Failed to save draft' })
+        setFeedback({ type: 'error', message: res.error || 'Failed to save draft. Please try again.' })
       }
     })
   }
 
-  // 2. Approve & Send Handler
+  // 2. Approve & Send Handler (Optimistic)
   const handleApproveSend = () => {
     if (isLocked) return
-    setFeedback(null)
+    const prevDraft = draft
+    const prevEmailRecord = emailRecord
+
+    // Instant optimistic update
+    setFeedback({ type: 'success', message: 'Approving draft and dispatching reply...' })
+    if (draft) {
+      setDraft({
+        ...draft,
+        status: 'approved',
+        edited_text: draftText,
+        approved_at: new Date().toISOString(),
+      })
+    }
+    setEmailRecord((prev) => ({
+      ...prev,
+      status: 'approved',
+    }))
+
     startTransition(async () => {
       const res = await approveAndSendAction({
         emailId: email.id,
@@ -209,7 +228,7 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
 
         setFeedback({
           type: 'success',
-          message: `Draft approved (${tagLabel})! Supabase trigger has notified n8n for email dispatch.`,
+          message: `Draft approved (${tagLabel})! Notification sent for email dispatch.`,
         })
 
         if (draft) {
@@ -222,17 +241,24 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
           })
         }
       } else {
-        setFeedback({ type: 'error', message: res.error || 'Failed to approve draft' })
+        // Rollback on failure
+        if (prevDraft) setDraft(prevDraft)
+        setEmailRecord(prevEmailRecord)
+        setFeedback({ type: 'error', message: res.error || 'Failed to approve draft. Please try again.' })
       }
     })
   }
 
-  // 3. Discard Handler
+  // 3. Discard Handler (Optimistic)
   const handleDiscard = () => {
     if (isLocked) return
-    setFeedback(null)
+    const prevText = draftText
+    const prevWasDiscarded = wasDiscarded
+
+    // Instant optimistic update
     setDraftText('')
     setWasDiscarded(true)
+    setFeedback({ type: 'success', message: 'Discarding draft...' })
 
     startTransition(async () => {
       const res = await discardDraftAction({
@@ -243,10 +269,13 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
       if (res.success) {
         setFeedback({
           type: 'success',
-          message: 'Draft text cleared. You can now write a custom reply to send as a manual response.',
+          message: 'Draft text cleared. You can write a custom reply to send as a manual response.',
         })
       } else {
-        setFeedback({ type: 'error', message: res.error || 'Failed to discard draft' })
+        // Rollback on failure
+        setDraftText(prevText)
+        setWasDiscarded(prevWasDiscarded)
+        setFeedback({ type: 'error', message: res.error || 'Failed to discard draft. Please try again.' })
       }
     })
   }
