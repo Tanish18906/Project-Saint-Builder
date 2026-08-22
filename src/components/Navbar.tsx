@@ -39,17 +39,17 @@ export function Navbar({ userEmail }: NavbarProps) {
             </Link>
 
             {/* Navigation links */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-4">
               {navItems.map((item) => {
                 const Icon = item.icon
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-2 py-2 text-sm font-medium transition-colors border-b-2 ${
                       item.active
-                        ? 'bg-[#2a2723] text-[#f5f1e8]'
-                        : 'text-[#e8e2d4]/70 hover:text-[#f5f1e8] hover:bg-[#2a2723]/60'
+                        ? 'border-[#f5f1e8] text-[#f5f1e8]'
+                        : 'border-transparent text-[#e8e2d4]/70 hover:text-[#f5f1e8]'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -64,7 +64,7 @@ export function Navbar({ userEmail }: NavbarProps) {
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded bg-[#2a2723]/60 border border-[#2a2723] text-xs text-[#e8e2d4]">
               <User className="w-3.5 h-3.5 text-[#e8e2d4]/70" />
-              <span className="max-w-[200px] truncate">{userEmail || 'Staff Member'}</span>
+              <span className="max-w-[200px] truncate">{userEmail || 'Staff member'}</span>
             </div>
 
             <form action={logout}>
@@ -74,7 +74,7 @@ export function Navbar({ userEmail }: NavbarProps) {
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#2a2723] hover:bg-[#3a3530] text-[#f5f1e8] rounded-md transition-colors border border-[#3a3530] cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sign Out</span>
+                <span className="hidden sm:inline">Sign out</span>
               </button>
             </form>
           </div>

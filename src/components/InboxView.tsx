@@ -259,24 +259,21 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Top Filter Container */}
-      <div className="bg-white rounded-lg border border-[#e8e2d4] p-5 shadow-sm space-y-4">
+      <div className="bg-white rounded-lg border border-[#e8e2d4] p-3.5 sm:p-4 shadow-sm space-y-3">
         {/* Monitored Inbox Tabs & Live Status */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8e2d4] pb-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#6b6559] mr-2">
-              Inboxes:
-            </span>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8e2d4] pb-2.5">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
             <button
               onClick={() => setSelectedAccountId('all')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+              className={`text-xs font-medium transition-colors cursor-pointer py-1.5 border-b-2 ${
                 selectedAccountId === 'all'
-                  ? 'bg-[#1c1a17] text-[#f5f1e8]'
-                  : 'bg-[#f5f1e8] text-[#1c1a17] hover:bg-[#e8e2d4]'
+                  ? 'border-[#1c1a17] text-[#1c1a17] font-semibold'
+                  : 'border-transparent text-[#6b6559] hover:text-[#1c1a17]'
               }`}
             >
-              All Monitored Inboxes ({emails.length})
+              All monitored inboxes <span className="opacity-70 text-[11px]">({emails.length})</span>
             </button>
 
             {accounts.map((acc) => {
@@ -285,15 +282,15 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
                 <button
                   key={acc.id}
                   onClick={() => setSelectedAccountId(acc.id)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  className={`text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer py-1.5 border-b-2 ${
                     selectedAccountId === acc.id
-                      ? 'bg-[#1c1a17] text-[#f5f1e8]'
-                      : 'bg-[#f5f1e8] text-[#1c1a17] hover:bg-[#e8e2d4]'
+                      ? 'border-[#1c1a17] text-[#1c1a17] font-semibold'
+                      : 'border-transparent text-[#6b6559] hover:text-[#1c1a17]'
                   }`}
                 >
-                  <Building2 className="w-3.5 h-3.5 opacity-70" />
+                  <Building2 className="w-3.5 h-3.5 opacity-60" />
                   <span>{acc.display_name || acc.email_address}</span>
-                  <span className="opacity-60 text-[11px]">({count})</span>
+                  <span className="opacity-70 text-[11px]">({count})</span>
                 </button>
               )
             })}
@@ -302,97 +299,86 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
           {/* Realtime Live Pulse & Quick Metrics */}
           <div className="flex items-center gap-2 text-xs">
             <div
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border font-medium text-[11px] ${
+              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border font-medium text-[11px] ${
                 isRealtimeLive
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                  : 'bg-stone-100 text-stone-600 border-stone-200'
+                  : 'bg-[#f5f1e8] text-[#6b6559] border-[#e8e2d4]'
               }`}
-              title={isRealtimeLive ? 'Live WebSocket Connected to Supabase' : 'Connecting to Supabase Realtime...'}
+              title={isRealtimeLive ? 'Live WebSocket connected to Supabase' : 'Connecting to Supabase Realtime...'}
             >
               <span
-                className={`w-2 h-2 rounded-full ${
-                  isRealtimeLive ? 'bg-emerald-500 animate-pulse' : 'bg-stone-400'
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isRealtimeLive ? 'bg-emerald-500 animate-pulse' : 'bg-[#6b6559]'
                 }`}
               />
-              <span>{isRealtimeLive ? 'Realtime Live' : 'Connecting'}</span>
+              <span>{isRealtimeLive ? 'Realtime live' : 'Connecting'}</span>
             </div>
 
             {urgentCount > 0 && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-red-50 text-red-700 border border-red-200 font-semibold">
-                <AlertTriangle className="w-3 h-3 text-red-600" />
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#fef2f2] text-[#b91c1c] border border-[#fecaca] font-semibold text-[11px]">
+                <AlertTriangle className="w-3 h-3" />
                 {urgentCount} Urgent
               </span>
             )}
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#f5f1e8] text-[#6b6559] border border-[#e8e2d4] font-medium hidden sm:inline-flex">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#f5f1e8] text-[#6b6559] border border-[#e8e2d4] font-medium text-[11px] hidden sm:inline-flex">
               <Mail className="w-3 h-3 text-[#6b6559]" />
               {draftedCount} Drafted
             </span>
           </div>
         </div>
 
-        {/* Role Filters */}
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-[#e8e2d4] pb-4">
-          <span className="text-xs font-medium text-[#6b6559] mr-2 flex items-center gap-1">
-            <User className="w-3.5 h-3.5 opacity-60" />
-            Role queue:
-          </span>
-          {ROLES.map((r) => {
-            const count =
-              r.value === 'all'
-                ? emails.length
-                : emails.filter((e) => (e.routed_role || '').toLowerCase() === r.value).length
-
-            return (
-              <button
-                key={r.value}
-                onClick={() => setSelectedRole(r.value)}
-                className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
-                  selectedRole === r.value
-                    ? 'bg-[#2a2723] text-[#f5f1e8]'
-                    : 'bg-[#f5f1e8]/70 text-[#6b6559] hover:bg-[#e8e2d4] hover:text-[#1c1a17]'
-                }`}
-              >
-                <span>{r.label}</span>
-                <span className="opacity-60 ml-1 text-[11px]">({count})</span>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Search, Category, Status Filters */}
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        {/* Search & Consolidated Filter Dropdowns (Role, Category, Status) */}
+        <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
           {/* Search Box */}
           <div className="relative flex-1 max-w-md">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#6b6559]">
-              <Search className="h-4 w-4" />
+              <Search className="h-3.5 w-3.5" />
             </div>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search sender, subject, keywords..."
-              className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm border border-[#e8e2d4] rounded bg-white text-[#1c1a17] placeholder:text-[#6b6559]/50 focus:outline-none focus:ring-1 focus:ring-[#1c1a17]"
+              className="w-full pl-8 pr-8 py-1.5 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] placeholder:text-[#6b6559]/50 focus:outline-none focus:ring-1 focus:ring-[#1c1a17]"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-[#6b6559] hover:text-[#1c1a17] cursor-pointer"
+                className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-xs text-[#6b6559] hover:text-[#1c1a17] cursor-pointer"
               >
                 ×
               </button>
             )}
           </div>
 
-          {/* Category and Status Dropdowns */}
+          {/* Consolidated Dropdown Group */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* Role Dropdown */}
             <div className="flex items-center gap-1 text-xs text-[#6b6559]">
-              <Filter className="w-3.5 h-3.5" />
+              <User className="w-3.5 h-3.5 opacity-60" />
+              <span>Role:</span>
+            </div>
+            <select
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+              className="px-2 py-1 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] focus:outline-none focus:ring-1 focus:ring-[#1c1a17] cursor-pointer"
+            >
+              {ROLES.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Category Dropdown */}
+            <div className="flex items-center gap-1 text-xs text-[#6b6559] ml-1">
+              <Filter className="w-3.5 h-3.5 opacity-60" />
               <span>Category:</span>
             </div>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-2.5 py-1.5 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] focus:outline-none focus:ring-1 focus:ring-[#1c1a17] cursor-pointer"
+              className="px-2 py-1 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] focus:outline-none focus:ring-1 focus:ring-[#1c1a17] cursor-pointer"
             >
               {CATEGORIES.map((cat) => (
                 <option key={cat.value} value={cat.value}>
@@ -401,13 +387,14 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
               ))}
             </select>
 
-            <div className="flex items-center gap-1 text-xs text-[#6b6559] ml-2">
+            {/* Status Dropdown */}
+            <div className="flex items-center gap-1 text-xs text-[#6b6559] ml-1">
               <span>Status:</span>
             </div>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-2.5 py-1.5 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] focus:outline-none focus:ring-1 focus:ring-[#1c1a17] cursor-pointer"
+              className="px-2 py-1 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] focus:outline-none focus:ring-1 focus:ring-[#1c1a17] cursor-pointer"
             >
               {STATUSES.map((stat) => (
                 <option key={stat.value} value={stat.value}>
@@ -419,7 +406,7 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
             {hasActiveFilters && (
               <button
                 onClick={resetFilters}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-[#6b6559] hover:text-[#1c1a17] bg-[#f5f1e8] hover:bg-[#e8e2d4] rounded transition-colors cursor-pointer ml-1"
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-[#6b6559] hover:text-[#1c1a17] bg-[#f5f1e8] hover:bg-[#e8e2d4] rounded transition-colors cursor-pointer ml-1"
                 title="Reset all filters"
               >
                 <RotateCcw className="w-3 h-3" />
@@ -450,22 +437,20 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
 
       {/* Email Cards Feed */}
       {filteredEmails.length === 0 ? (
-        <div className="bg-white rounded-lg border border-[#e8e2d4] p-12 text-center shadow-sm">
-          <div className="w-12 h-12 rounded-full bg-[#f5f1e8] flex items-center justify-center mx-auto mb-3 text-[#6b6559]">
-            <Inbox className="w-6 h-6" />
-          </div>
-          <h3 className="text-sm font-semibold text-[#1c1a17]">No emails match current filters</h3>
-          <p className="text-xs text-[#6b6559] mt-1 max-w-sm mx-auto">
+        <div className="bg-white rounded-lg border border-[#e8e2d4] p-8 text-center shadow-sm">
+          <Inbox className="w-5 h-5 mx-auto text-[#6b6559] opacity-60 mb-2" />
+          <h3 className="text-xs font-medium text-[#1c1a17]">No emails match current filters</h3>
+          <p className="text-[11px] text-[#6b6559] mt-0.5 max-w-xs mx-auto">
             {hasActiveFilters
-              ? 'Try resetting or broadening your filters to find the messages you are looking for.'
+              ? 'Try resetting your filters or adjusting your search query.'
               : 'The inbox is currently empty.'}
           </p>
           {hasActiveFilters && (
             <button
               onClick={resetFilters}
-              className="mt-4 px-3.5 py-1.5 bg-[#1c1a17] text-[#f5f1e8] text-xs font-medium rounded hover:bg-[#2a2723] transition-colors cursor-pointer"
+              className="mt-3 px-3 py-1 bg-[#1c1a17] hover:bg-[#2a2723] text-[#f5f1e8] text-xs font-medium rounded transition-colors cursor-pointer"
             >
-              Clear All Filters
+              Reset filters
             </button>
           )}
         </div>

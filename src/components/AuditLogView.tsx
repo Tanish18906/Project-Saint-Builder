@@ -286,15 +286,12 @@ export function AuditLogView({ initialLogs }: AuditLogViewProps) {
   }, [logs, selectedAction, searchQuery])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Top Filter Card */}
-      <div className="bg-white rounded-lg border border-[#e8e2d4] p-4 shadow-sm space-y-4">
+      <div className="bg-white rounded-lg border border-[#e8e2d4] p-3.5 sm:p-4 shadow-sm space-y-3">
         {/* Action Type Filter Buttons & Live Status */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8e2d4] pb-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#6b6559] mr-2">
-              Action:
-            </span>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8e2d4] pb-2.5">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
             {ACTION_FILTERS.map((item) => {
               const count =
                 item.value === 'all'
@@ -305,52 +302,52 @@ export function AuditLogView({ initialLogs }: AuditLogViewProps) {
                 <button
                   key={item.value}
                   onClick={() => setSelectedAction(item.value)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                  className={`text-xs font-medium transition-colors cursor-pointer py-1.5 border-b-2 ${
                     selectedAction === item.value
-                      ? 'bg-[#1c1a17] text-[#f5f1e8]'
-                      : 'bg-[#f5f1e8] text-[#1c1a17] hover:bg-[#e8e2d4]'
+                      ? 'border-[#1c1a17] text-[#1c1a17] font-semibold'
+                      : 'border-transparent text-[#6b6559] hover:text-[#1c1a17]'
                   }`}
                 >
                   <span>{item.label}</span>
-                  <span className="opacity-60 ml-1 text-[11px]">({count})</span>
+                  <span className="opacity-70 ml-1 text-[11px]">({count})</span>
                 </button>
               )
             })}
           </div>
 
           <div
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border font-medium text-[11px] ${
+            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border font-medium text-[11px] ${
               isRealtimeLive
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : 'bg-stone-100 text-stone-600 border-stone-200'
+                : 'bg-[#f5f1e8] text-[#6b6559] border-[#e8e2d4]'
             }`}
-            title={isRealtimeLive ? 'Live WebSocket Connected to Supabase' : 'Connecting to Supabase Realtime...'}
+            title={isRealtimeLive ? 'Live WebSocket connected to Supabase' : 'Connecting to Supabase Realtime...'}
           >
             <span
-              className={`w-2 h-2 rounded-full ${
-                isRealtimeLive ? 'bg-emerald-500 animate-pulse' : 'bg-stone-400'
+              className={`w-1.5 h-1.5 rounded-full ${
+                isRealtimeLive ? 'bg-emerald-500 animate-pulse' : 'bg-[#6b6559]'
               }`}
             />
-            <span>{isRealtimeLive ? 'Realtime Live' : 'Connecting'}</span>
+            <span>{isRealtimeLive ? 'Realtime live' : 'Connecting'}</span>
           </div>
         </div>
 
         {/* Search Bar */}
         <div className="relative max-w-md">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#6b6559]">
-            <Search className="h-4 w-4" />
+            <Search className="h-3.5 w-3.5" />
           </div>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search audit trail by subject, sender, or details..."
-            className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm border border-[#e8e2d4] rounded bg-white text-[#1c1a17] placeholder:text-[#6b6559]/50 focus:outline-none focus:ring-1 focus:ring-[#1c1a17]"
+            className="w-full pl-8 pr-8 py-1.5 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] placeholder:text-[#6b6559]/50 focus:outline-none focus:ring-1 focus:ring-[#1c1a17]"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-[#6b6559] hover:text-[#1c1a17] cursor-pointer"
+              className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-xs text-[#6b6559] hover:text-[#1c1a17] cursor-pointer"
             >
               ×
             </button>
@@ -369,12 +366,10 @@ export function AuditLogView({ initialLogs }: AuditLogViewProps) {
       {/* Audit Log Table */}
       <div className="bg-white rounded-lg border border-[#e8e2d4] shadow-sm overflow-hidden">
         {filteredLogs.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="w-12 h-12 rounded-full bg-[#f5f1e8] flex items-center justify-center mx-auto mb-3 text-[#6b6559]">
-              <FileClock className="w-6 h-6" />
-            </div>
-            <h3 className="text-sm font-semibold text-[#1c1a17]">No audit log events found</h3>
-            <p className="text-xs text-[#6b6559] mt-1">
+          <div className="p-8 text-center">
+            <FileClock className="w-5 h-5 mx-auto text-[#6b6559] opacity-60 mb-2" />
+            <h3 className="text-xs font-medium text-[#1c1a17]">No audit log events found</h3>
+            <p className="text-[11px] text-[#6b6559] mt-0.5">
               Try adjusting your action filter or search query.
             </p>
           </div>
