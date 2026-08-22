@@ -35,7 +35,7 @@ export default function LoginPage() {
         <div className="p-6 sm:p-8">
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-[#1c1a17]">
-              Staff Sign In
+              Staff sign in
             </h2>
             <p className="text-sm text-[#6b6559] mt-1">
               Sign in with your staff account to review and triage inboxes.
@@ -46,7 +46,7 @@ export default function LoginPage() {
             <div className="mb-5 p-3.5 rounded bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-red-600" />
               <div>
-                <p className="font-medium">Authentication Failed</p>
+                <p className="font-medium">Authentication failed</p>
                 <p className="text-xs mt-0.5 text-red-600">{error}</p>
               </div>
             </div>
@@ -56,9 +56,9 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-xs font-semibold uppercase tracking-wider text-[#1c1a17] mb-1.5"
+                className="block text-xs font-medium text-[#1c1a17] mb-1.5"
               >
-                Email Address
+                Email address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#6b6559]">
@@ -79,7 +79,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-semibold uppercase tracking-wider text-[#1c1a17] mb-1.5"
+                className="block text-xs font-medium text-[#1c1a17] mb-1.5"
               >
                 Password
               </label>
@@ -107,10 +107,10 @@ export default function LoginPage() {
               {isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Signing In...
+                  Signing in...
                 </>
               ) : (
-                'Sign In'
+                'Sign in'
               )}
             </button>
           </form>

@@ -9,19 +9,27 @@
   --foreman-text-primary: #1c1a17;
   --foreman-text-secondary: #6b6559;
 
-  --category-urgent: #dc2626;
-  --category-priority: #ea580c;
-  --category-finance: #0891b2;
-  --category-contracts: #7c3aed;
-  --category-nph: #059669;
-  --category-read-later: #6b6559;
-  --category-other: #94a3b8;
+  /* Urgency — the only place color carries real signal, like a hazard marker on site */
+  --urgency-urgent: #b91c1c;
+  --urgency-urgent-bg: #fef2f2;
+  --urgency-urgent-border: #fecaca;
+  --urgency-priority: #c2560c;
+  --urgency-priority-bg: #fff7ed;
+  --urgency-priority-border: #fed7aa;
 
-  --status-new: #94a3b8;
-  --status-pending: #ea580c;
-  --status-approved: #059669;
-  --status-sent: #1c1a17;
-  --status-discarded: #94a3b8;
+  /* Category neutral styling — category conveyed by text label, not hue */
+  --tag-neutral-bg: #ece7db;
+  --tag-neutral-border: #e2dbcd;
+  --tag-neutral-text: #4a453c;
+
+  /* Status — weight/style does the work color used to do */
+  --status-sent-bg: var(--foreman-charcoal);
+  --status-sent-text: var(--foreman-cream);
+  --status-approved-text: #2f6b3f;
+  --status-approved-bg: #f0fdf4;
+  --status-approved-border: #bbf7d0;
+  --status-pending-text: var(--foreman-text-secondary);
+  --status-discarded-text: var(--foreman-text-secondary);
 }
 
 body {

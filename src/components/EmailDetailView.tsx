@@ -284,9 +284,9 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
 
         <div className="flex flex-wrap items-center gap-2">
           {isUrgent && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold bg-[#fef2f2] text-[#b91c1c] border border-[#fecaca]">
               <ShieldAlert className="w-3.5 h-3.5" />
-              Urgent Priority
+              Urgent priority
             </span>
           )}
           <CategoryBadge category={emailRecord.category} />
@@ -306,7 +306,7 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
         <div className="lg:col-span-7 space-y-6">
           <div
             className={`bg-white rounded-lg border shadow-sm overflow-hidden ${
-              isUrgent ? 'border-l-4 border-l-red-600 border-[#e8e2d4]' : 'border-[#e8e2d4]'
+              isUrgent ? 'border-l-4 border-l-[#b91c1c] border-[#e8e2d4]' : 'border-[#e8e2d4]'
             }`}
           >
             {/* Email Meta Header */}
@@ -317,7 +317,7 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
                 <div>
-                  <span className="text-[#6b6559] block text-[11px] uppercase tracking-wider font-semibold">
+                  <span className="text-[#6b6559] block text-[11px] font-medium">
                     From
                   </span>
                   <p className="font-semibold text-[#1c1a17] mt-0.5">
@@ -327,7 +327,7 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
                 </div>
 
                 <div>
-                  <span className="text-[#6b6559] block text-[11px] uppercase tracking-wider font-semibold">
+                  <span className="text-[#6b6559] block text-[11px] font-medium">
                     Received
                   </span>
                   <p className="font-medium text-[#1c1a17] mt-0.5 flex items-center gap-1">
@@ -337,8 +337,8 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
                 </div>
 
                 <div>
-                  <span className="text-[#6b6559] block text-[11px] uppercase tracking-wider font-semibold">
-                    Routed Role
+                  <span className="text-[#6b6559] block text-[11px] font-medium">
+                    Routed role
                   </span>
                   <p className="font-semibold text-[#1c1a17] mt-0.5 capitalize flex items-center gap-1">
                     <User className="w-3.5 h-3.5 text-[#6b6559]" />
@@ -347,7 +347,7 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
                 </div>
 
                 <div>
-                  <span className="text-[#6b6559] block text-[11px] uppercase tracking-wider font-semibold">
+                  <span className="text-[#6b6559] block text-[11px] font-medium">
                     Message-ID
                   </span>
                   <p className="font-mono text-[11px] text-[#6b6559] mt-0.5 truncate" title={email.message_id}>
@@ -359,8 +359,8 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
 
             {/* Email Body Content */}
             <div className="p-6">
-              <span className="text-[#6b6559] block text-[11px] uppercase tracking-wider font-semibold mb-3">
-                Message Body
+              <span className="text-[#6b6559] block text-[11px] font-medium mb-3">
+                Message body
               </span>
               {email.body_html ? (
                 <div
@@ -387,8 +387,8 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
             <div className="flex items-center justify-between border-b border-[#e8e2d4] pb-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-600" />
-                <h2 className="text-xs font-bold uppercase tracking-wider text-[#1c1a17]">
-                  AI Triage Analysis
+                <h2 className="text-xs font-semibold text-[#1c1a17]">
+                  AI triage analysis
                 </h2>
               </div>
               {classificationAudit?.confidence !== undefined && (
@@ -400,8 +400,8 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
 
             {/* Summary Box */}
             <div>
-              <span className="text-[11px] uppercase tracking-wider text-[#6b6559] font-medium block mb-1">
-                Executive Summary
+              <span className="text-[11px] text-[#6b6559] font-medium block mb-1">
+                Executive summary
               </span>
               <p className="text-xs text-[#1c1a17] bg-[#f5f1e8] p-3 rounded border border-[#e8e2d4] leading-relaxed">
                 {classificationAudit?.summary || 'No AI summary generated for this message.'}
@@ -410,13 +410,13 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
 
             <div className="grid grid-cols-2 gap-2 text-xs pt-1">
               <div>
-                <span className="text-[#6b6559] text-[11px] block">Assigned Role</span>
+                <span className="text-[#6b6559] text-[11px] block">Assigned role</span>
                 <span className="font-semibold text-[#1c1a17] capitalize">
                   {classificationAudit?.routed_role || email.routed_role || 'General'}
                 </span>
               </div>
               <div>
-                <span className="text-[#6b6559] text-[11px] block">Triage Category</span>
+                <span className="text-[#6b6559] text-[11px] block">Triage category</span>
                 <span className="font-semibold text-[#1c1a17] capitalize">
                   {(classificationAudit?.category || email.category || 'other').replace(/_/g, ' ')}
                 </span>
@@ -429,14 +429,14 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
             <div className="flex items-center justify-between border-b border-[#e8e2d4] pb-3">
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-[#1c1a17]" />
-                <h2 className="text-xs font-bold uppercase tracking-wider text-[#1c1a17]">
-                  Review & Approve Reply
+                <h2 className="text-xs font-semibold text-[#1c1a17]">
+                  Review &amp; approve reply
                 </h2>
               </div>
               <div className="flex items-center gap-2">
                 {draft && (
                   <>
-                    <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-stone-100 text-stone-700 border border-stone-200 uppercase">
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-[#ece7db] text-[#4a453c] border border-[#e2dbcd] uppercase">
                       {draft.draft_type.replace(/_/g, ' ')}
                     </span>
                     <StatusBadge status={draft.status} />
@@ -499,10 +499,10 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
               <div className="flex items-center justify-between mb-1.5">
                 <label
                   htmlFor="draft-textarea"
-                  className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-[#6b6559]"
+                  className="flex items-center gap-1.5 text-[11px] font-medium text-[#6b6559]"
                 >
                   {isLocked && <Lock className="w-3.5 h-3.5 text-[#6b6559]" />}
-                  <span>{isLocked ? 'Final Reply Content (Locked)' : 'Reply Draft Content'}</span>
+                  <span>{isLocked ? 'Final reply content (locked)' : 'Reply draft content'}</span>
                 </label>
                 <div className="flex items-center gap-2">
                   {!isLocked && draft?.ai_generated_text && draftText !== draft.ai_generated_text && (
@@ -552,7 +552,7 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
                 </span>
                 {isLocked ? (
                   <span className="font-medium text-[#6b6559] flex items-center gap-1">
-                    <Lock className="w-3 h-3" /> Read-Only
+                    <Lock className="w-3 h-3" /> Read-only
                   </span>
                 ) : draft?.ai_generated_text ? (
                   <span className="italic">
@@ -588,14 +588,14 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
                   className="py-2.5 px-3 bg-white hover:bg-[#f5f1e8] border border-[#e8e2d4] text-[#1c1a17] text-xs font-medium rounded transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
                   <Save className="w-3.5 h-3.5 text-[#6b6559]" />
-                  <span>Save Draft</span>
+                  <span>Save draft</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleDiscard}
                   disabled={isPending}
-                  className="py-2.5 px-3 bg-white hover:bg-red-50 border border-red-200 text-red-700 text-xs font-medium rounded transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  className="py-2.5 px-3 bg-white hover:bg-[#f5f1e8] border border-[#e8e2d4] text-[#6b6559] hover:text-[#b91c1c] text-xs font-medium rounded transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Discard</span>

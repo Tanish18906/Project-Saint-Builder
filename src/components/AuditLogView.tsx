@@ -60,41 +60,41 @@ function getActionBadge(action: string) {
   switch (norm) {
     case 'classified':
       return {
-        bg: 'bg-blue-50',
-        text: 'text-blue-700',
-        border: 'border-blue-200',
+        bg: 'bg-[#ece7db]',
+        text: 'text-[#4a453c]',
+        border: 'border-[#e2dbcd]',
         icon: Sparkles,
         label: 'Classified',
       }
     case 'drafted':
       return {
-        bg: 'bg-amber-50',
-        text: 'text-amber-800',
-        border: 'border-amber-200',
+        bg: 'bg-[#ece7db]',
+        text: 'text-[#4a453c]',
+        border: 'border-[#e2dbcd]',
         icon: Mail,
         label: 'Drafted',
       }
     case 'edited':
       return {
-        bg: 'bg-stone-100',
-        text: 'text-stone-700',
-        border: 'border-stone-200',
+        bg: 'bg-[#ece7db]',
+        text: 'text-[#4a453c]',
+        border: 'border-[#e2dbcd]',
         icon: Edit3,
-        label: 'Draft Edited',
+        label: 'Draft edited',
       }
     case 'approved':
       return {
-        bg: 'bg-emerald-50',
-        text: 'text-emerald-800',
-        border: 'border-emerald-200',
+        bg: 'bg-emerald-50/70',
+        text: 'text-[#2f6b3f]',
+        border: 'border-emerald-200/80',
         icon: CheckCircle2,
         label: 'Approved',
       }
     case 'discarded':
       return {
-        bg: 'bg-red-50',
-        text: 'text-red-700',
-        border: 'border-red-200',
+        bg: 'bg-[#f5f1e8]',
+        text: 'text-[#6b6559]',
+        border: 'border-[#e8e2d4]',
         icon: Trash2,
         label: 'Discarded',
       }
@@ -108,9 +108,9 @@ function getActionBadge(action: string) {
       }
     default:
       return {
-        bg: 'bg-slate-100',
-        text: 'text-slate-700',
-        border: 'border-slate-200',
+        bg: 'bg-[#ece7db]',
+        text: 'text-[#4a453c]',
+        border: 'border-[#e2dbcd]',
         icon: FileClock,
         label: action,
       }
@@ -360,10 +360,10 @@ export function AuditLogView({ initialLogs }: AuditLogViewProps) {
 
       {/* Results Header */}
       <div className="flex items-center justify-between px-1">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-[#1c1a17]">
-          Activity Trail ({filteredLogs.length} Events)
+        <h2 className="text-sm font-semibold text-[#1c1a17]">
+          Activity trail · {filteredLogs.length} {filteredLogs.length === 1 ? 'event' : 'events'}
         </h2>
-        <span className="text-xs text-[#6b6559]">Sorted by Created Time (Newest First)</span>
+        <span className="text-xs text-[#6b6559]">Sorted by created time</span>
       </div>
 
       {/* Audit Log Table */}
@@ -382,12 +382,12 @@ export function AuditLogView({ initialLogs }: AuditLogViewProps) {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#f5f1e8]/60 border-b border-[#e8e2d4] text-[11px] font-semibold uppercase tracking-wider text-[#6b6559]">
-                  <th className="py-3 px-4">Timestamp</th>
-                  <th className="py-3 px-4">Action</th>
-                  <th className="py-3 px-4">Email Reference</th>
-                  <th className="py-3 px-4">Actor</th>
-                  <th className="py-3 px-4">Details / Metadata</th>
+                <tr className="bg-[#f5f1e8]/60 border-b border-[#e8e2d4] text-[11px] font-semibold text-[#6b6559]">
+                  <th className="py-2.5 px-4">Timestamp</th>
+                  <th className="py-2.5 px-4">Action</th>
+                  <th className="py-2.5 px-4">Email reference</th>
+                  <th className="py-2.5 px-4">Actor</th>
+                  <th className="py-2.5 px-4">Details / metadata</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e8e2d4] text-xs">

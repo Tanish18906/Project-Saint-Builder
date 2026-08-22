@@ -332,9 +332,9 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
 
         {/* Role Filters */}
         <div className="flex flex-wrap items-center gap-1.5 border-b border-[#e8e2d4] pb-4">
-          <span className="text-xs font-semibold uppercase tracking-wider text-[#6b6559] mr-2 flex items-center gap-1">
+          <span className="text-xs font-medium text-[#6b6559] mr-2 flex items-center gap-1">
             <User className="w-3.5 h-3.5 opacity-60" />
-            Role Queue:
+            Role queue:
           </span>
           {ROLES.map((r) => {
             const count =
@@ -433,18 +433,18 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
       {/* Feed Section Header */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[#1c1a17]">
-            Inbox Feed ({filteredEmails.length})
+          <h2 className="text-sm font-semibold text-[#1c1a17]">
+            Inbox feed · {filteredEmails.length} {filteredEmails.length === 1 ? 'email' : 'emails'}
           </h2>
           {urgentCount > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-700 border border-red-200">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#fef2f2] text-[#b91c1c] border border-[#fecaca]">
               <AlertTriangle className="w-3 h-3" />
               {urgentCount} Urgent
             </span>
           )}
         </div>
         <span className="text-xs text-[#6b6559]">
-          Sorted by Received Time (Newest First)
+          Sorted by received time
         </span>
       </div>
 
@@ -472,7 +472,9 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
       ) : (
         <div className="space-y-2.5">
           {filteredEmails.map((email) => {
-            const isUrgent = (email.category || '').toLowerCase() === 'urgent'
+            const cat = (email.category || '').toLowerCase()
+            const isUrgent = cat === 'urgent'
+            const isPriority = cat === 'priority'
 
             return (
               <Link
@@ -480,14 +482,16 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
                 href={`/emails/${email.id}`}
                 className={`block bg-white rounded-lg border transition-all duration-150 p-4 shadow-sm hover:shadow hover:border-[#1c1a17]/50 group cursor-pointer ${
                   isUrgent
-                    ? 'border-l-4 border-l-red-600 border-red-200 bg-red-50/15'
+                    ? 'border-l-4 border-l-[#b91c1c] border-[#e8e2d4] bg-[#fef2f2]/30'
+                    : isPriority
+                    ? 'border-l-4 border-l-[#c2560c] border-[#e8e2d4] bg-[#fff7ed]/30'
                     : 'border-[#e8e2d4]'
                 }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                   {/* Sender & Monitored Account */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold text-sm text-[#1c1a17] group-hover:text-black">
+                    <span className="font-normal text-sm text-[#1c1a17]">
                       {email.from_name || email.from_address}
                     </span>
                     {email.from_name && (

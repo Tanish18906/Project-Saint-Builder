@@ -21,45 +21,45 @@ const STATUS_CONFIG: Record<
 > = {
   new: {
     label: 'New',
-    bg: 'bg-slate-100',
-    text: 'text-slate-700',
-    border: 'border-slate-200',
+    bg: 'bg-[#f5f1e8]',
+    text: 'text-[#6b6559]',
+    border: 'border-[#e8e2d4]',
   },
   classified: {
     label: 'Classified',
-    bg: 'bg-blue-50',
-    text: 'text-blue-700',
-    border: 'border-blue-200',
+    bg: 'bg-[#f5f1e8]',
+    text: 'text-[#6b6559]',
+    border: 'border-[#e8e2d4]',
   },
   drafted: {
     label: 'Drafted',
-    bg: 'bg-amber-50',
-    text: 'text-amber-700',
-    border: 'border-amber-200',
+    bg: 'bg-[#f5f1e8]',
+    text: 'text-[#6b6559]',
+    border: 'border-[#e8e2d4]',
   },
   pending: {
-    label: 'Pending Review',
-    bg: 'bg-amber-50',
-    text: 'text-amber-700',
-    border: 'border-amber-200',
+    label: 'Pending review',
+    bg: 'bg-[#f5f1e8]',
+    text: 'text-[#6b6559]',
+    border: 'border-[#e8e2d4]',
   },
   approved: {
     label: 'Approved',
-    bg: 'bg-emerald-50',
-    text: 'text-emerald-700',
-    border: 'border-emerald-200',
+    bg: 'bg-emerald-50/70',
+    text: 'text-[#2f6b3f] font-semibold',
+    border: 'border-emerald-200/80',
   },
   sent: {
     label: 'Sent',
     bg: 'bg-[#1c1a17]',
-    text: 'text-[#f5f1e8]',
+    text: 'text-[#f5f1e8] font-medium',
     border: 'border-[#1c1a17]',
   },
   discarded: {
     label: 'Discarded',
-    bg: 'bg-stone-100',
-    text: 'text-stone-600',
-    border: 'border-stone-200',
+    bg: 'bg-[#f5f1e8]',
+    text: 'text-[#6b6559]',
+    border: 'border-[#e8e2d4]',
   },
 }
 
@@ -68,9 +68,9 @@ export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
 
   const config = STATUS_CONFIG[status.toLowerCase()] || {
     label: status.replace(/_/g, ' '),
-    bg: 'bg-slate-100',
-    text: 'text-slate-700',
-    border: 'border-slate-200',
+    bg: 'bg-[#f5f1e8]',
+    text: 'text-[#6b6559]',
+    border: 'border-[#e8e2d4]',
   }
 
   return (
