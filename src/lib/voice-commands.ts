@@ -7,6 +7,7 @@ export type VoiceActionType =
   | 'apply_edit'
   | 'dictation'
   | 'voice_send_blocked'
+  | 'unrecognized'
 
 export interface VoiceCommandResult {
   action: VoiceActionType
@@ -47,11 +48,10 @@ export function parseVoiceCommand(transcript: string): VoiceCommandResult {
 
   if (!normalized) {
     return {
-      action: 'apply_edit',
+      action: 'unrecognized',
       rawText,
       normalizedText: '',
-      editInstruction: '',
-      dictationText: '',
+      feedbackMessage: "Sorry, I didn't catch that.",
     }
   }
 
@@ -163,7 +163,22 @@ export function parseVoiceCommand(transcript: string): VoiceCommandResult {
     }
   }
 
-  // 7. Non-command speech: Apply spoken instruction as an edit to the draft
+  // 7. Guard against low-confidence noise/STT artifacts (e.g. a single stray
+  // word picked up from background noise) being silently applied as a
+  // deliberate draft edit. A genuine dictation/edit instruction is virtually
+  // always 2+ words; anything shorter that didn't match a known command above
+  // is treated as unrecognized rather than risking an unwanted rewrite.
+  const wordCount = normalized.split(/\s+/).filter(Boolean).length
+  if (wordCount < 2) {
+    return {
+      action: 'unrecognized',
+      rawText,
+      normalizedText: normalized,
+      feedbackMessage: "Sorry, I didn't catch a command there.",
+    }
+  }
+
+  // 8. Non-command speech: Apply spoken instruction as an edit to the draft
   return {
     action: 'apply_edit',
     rawText,

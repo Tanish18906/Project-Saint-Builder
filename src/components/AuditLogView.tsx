@@ -151,22 +151,55 @@ function renderDetails(details: any, action: string) {
   }
 
   if (action === 'classified') {
+    // Current classify prompt writes {theme, urgency, routed_roles[], confidence, summary}.
+    // Historical rows from before the theme-routing migration may still carry the old
+    // {category, routed_role, confidence, summary} shape — render both defensively.
+    const isLegacyShape = parsed.theme === undefined && parsed.category !== undefined
+    const confidencePercent =
+      parsed.confidence !== undefined
+        ? parsed.confidence <= 1
+          ? Math.round(parsed.confidence * 100)
+          : Math.round(parsed.confidence)
+        : undefined
+
     return (
       <div className="space-y-1 text-xs">
         <div className="flex flex-wrap items-center gap-1.5">
-          {parsed.category && (
-            <span className="px-1.5 py-0.5 rounded bg-[#f5f1e8] text-[#1c1a17] font-medium border border-[#e8e2d4]">
-              {parsed.category}
-            </span>
+          {isLegacyShape ? (
+            <>
+              {parsed.category && (
+                <span className="px-1.5 py-0.5 rounded bg-[#f5f1e8] text-[#1c1a17] font-medium border border-[#e8e2d4]">
+                  {parsed.category}
+                </span>
+              )}
+              {parsed.routed_role && (
+                <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 capitalize">
+                  Role: {parsed.routed_role}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              {parsed.theme && (
+                <span className="px-1.5 py-0.5 rounded bg-[#f5f1e8] text-[#1c1a17] font-medium border border-[#e8e2d4] capitalize">
+                  {String(parsed.theme).replace(/_/g, ' ')}
+                </span>
+              )}
+              {parsed.urgency && (
+                <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 capitalize">
+                  {parsed.urgency}
+                </span>
+              )}
+              {Array.isArray(parsed.routed_roles) && parsed.routed_roles.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 capitalize">
+                  Role: {parsed.routed_roles.map((r: string) => r.replace(/_/g, ' ')).join(', ')}
+                </span>
+              )}
+            </>
           )}
-          {parsed.routed_role && (
-            <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 capitalize">
-              Role: {parsed.routed_role}
-            </span>
-          )}
-          {parsed.confidence !== undefined && (
+          {confidencePercent !== undefined && (
             <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
-              {parsed.confidence}%
+              {confidencePercent}%
             </span>
           )}
         </div>

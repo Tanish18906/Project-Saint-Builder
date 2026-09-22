@@ -1,735 +1,41 @@
 {
+  "id": "l222oD70tdwjbHzN",
   "name": "Foreman Agent",
-  "nodes": [
-    {
-      "parameters": {},
-      "id": "27bff6e6-25e3-4990-b62d-42d59aa483ed",
-      "name": "Manual Trigger",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        -224,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "from_address",
-              "name": "from_address",
-              "type": "string",
-              "value": "j.whitfield@northampton.gov.uk"
-            },
-            {
-              "id": "from_name",
-              "name": "from_name",
-              "type": "string",
-              "value": "Verify WhatsApp URL Fix Retest"
-            },
-            {
-              "id": "subject",
-              "name": "subject",
-              "type": "string",
-              "value": "URGENT - NPH job 4522: retest after publishing voice_url fix"
-            },
-            {
-              "id": "body_text",
-              "name": "body_text",
-              "type": "string",
-              "value": "This is regarding NPH job 4522 at 14 Elm Street. Retesting the WhatsApp voice_url fix after publishing the workflow. Please treat this as a same-day test."
-            },
-            {
-              "id": "message_id",
-              "name": "message_id",
-              "type": "string",
-              "value": "verify-whatsapp-url-fix-20260821-003@fake.local"
-            },
-            {
-              "id": "received_at",
-              "name": "received_at",
-              "type": "string",
-              "value": "2026-08-21 13:20:00+00"
-            },
-            {
-              "id": "account_email",
-              "name": "account_email",
-              "type": "string",
-              "value": "team@allsaintsbuilders.com"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "8d781bf1-cc6b-4f75-9e03-2dd5c7122d52",
-      "name": "TEST EMAIL — NPH Job Update",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        16,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "modelId": {
-          "__rl": true,
-          "cachedResultName": "GPT-4O",
-          "mode": "list",
-          "value": "gpt-4o"
-        },
-        "responses": {
-          "values": [
-            {
-              "role": "system",
-              "content": "=You are an email triage assistant for Allsaints Builders, a construction company.\nClassify the incoming email into exactly one category, one routed_role, assign a confidence score (0-100), and provide a one-sentence summary.\n\nCategories (choose EXACTLY one):\n- urgent: needs response within hours, safety/legal/compliance issues, angry clients, deadlines today\n- priority: important and requires action, but has more than a day of runway (not same-day critical)\n- read_later: informational, newsletters, announcements, no action needed soon\n- finance_accounts: invoices, payments, financial queries, amounts owed\n- contracts: contract terms, agreements, signatures, legal wording changes\n- nph_job_update: communications specifically regarding Northampton Partnership Homes (NPH) / Northampton Council jobs (do not use for generic jobs or private sites)\n- other: matters that do not fit the above categories\n\nDisambiguation Rules:\n- urgent vs priority: Use 'urgent' only when a response is needed within hours, involves imminent deadlines today, safety/legal risks, or escalation. Use 'priority' when an action is required but has a reasonable timeline (days/weeks).\n- finance_accounts vs contracts: Use 'finance_accounts' for invoices, billing, bank details, and payment chasing. Use 'contracts' for formal contractual terms, subcontractor agreements, scope variations, and legal document signatures.\n- nph_job_update: Must ONLY be used when the email specifically references NPH or Northampton Council jobs/officers/job numbers. Generic job/site references without council/NPH affiliation should use 'priority', 'urgent', or 'other'.\n\nRouted Roles (routed_role MUST be EXACTLY one of these four strings — NO OTHER VALUES ARE ALLOWED):\n- director: confidential, high-value decisions, company contracts, high-level quotes\n- senior_admin: general info@ admin matters, general queries, office tasks\n- progressor: NPH/Northampton Council job communications (team@ inbox)\n- accountant: invoicing, payment processing, accounting-specific queries\n\nOutput JSON Schema:\n{\n  \"category\": \"<one of the 7 allowed categories>\",\n  \"routed_role\": \"<one of the 4 allowed roles>\",\n  \"confidence\": <integer from 0 to 100>,\n  \"summary\": \"<one plain-English sentence summarizing what the email is about and what is being asked>\"\n}\n\nExample output:\n{\n  \"category\": \"nph_job_update\",\n  \"routed_role\": \"progressor\",\n  \"confidence\": 95,\n  \"summary\": \"Council officer J. Whitfield is requesting confirmation by Friday on the completion date for roofing works at 12 Elm Street under NPH job #4521.\"\n}\n\nRespond ONLY with valid JSON matching the exact schema above. Do not include markdown code blocks, backticks, or any other text."
-            },
-            {
-              "content": "=FROM:- {{ $json.from_name }}\nsender's address:- {{ $json.from_address }}\n\nsubject - {{ $json.subject }}\n\nbody -  {{ $json.body_text }}\n\nrecieved on - {{ $json.account_email }}\n"
-            }
-          ]
-        },
-        "builtInTools": {},
-        "options": {
-          "temperature": 0.2
-        }
-      },
-      "id": "31138a01-d673-40a0-8bce-a856b4db6287",
-      "name": "OpenAI — Classify",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 2.3,
-      "position": [
-        304,
-        0
-      ],
-      "credentials": {
-        "openAiApi": {
-          "id": "XX9GrdRRSgVWcwot",
-          "name": "OpenAi account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "// Robust extraction across different OpenAI / LLM node output formats\nlet rawText = '';\nconst item = $input.item.json;\n\nif (typeof item === 'string') {\n  rawText = item;\n} else if (item.text) {\n  rawText = item.text;\n} else if (item.response) {\n  rawText = item.response;\n} else if (item.output && Array.isArray(item.output) && item.output[0]?.content) {\n  const contentObj = item.output[0].content;\n  if (Array.isArray(contentObj) && contentObj[0]?.text) {\n    rawText = contentObj[0].text;\n  } else if (typeof contentObj === 'string') {\n    rawText = contentObj;\n  }\n} else if (item.message && item.message.content) {\n  rawText = typeof item.message.content === 'string' ? item.message.content : JSON.stringify(item.message.content);\n} else {\n  rawText = JSON.stringify(item);\n}\n\n// Clean markdown code fences and extraneous whitespace\nrawText = rawText.replace(/```json\\s*/gi, '').replace(/```\\s*/gi, '').trim();\n\n// Allowed constraint lists from Supabase 'emails' schema\nconst ALLOWED_CATEGORIES = ['urgent', 'priority', 'read_later', 'finance_accounts', 'contracts', 'nph_job_update', 'other'];\nconst ALLOWED_ROLES = ['director', 'senior_admin', 'progressor', 'accountant'];\n\nlet parsedCategory = '';\nlet parsedRole = '';\nlet parsedConfidence = 85;\nlet parsedSummary = '';\n\ntry {\n  const jsonMatch = rawText.match(/\\{[\\s\\S]*\\}/);\n  const jsonStr = jsonMatch ? jsonMatch[0] : rawText;\n  const parsed = JSON.parse(jsonStr);\n  if (parsed.category) parsedCategory = String(parsed.category).trim().toLowerCase();\n  if (parsed.routed_role) parsedRole = String(parsed.routed_role).trim().toLowerCase();\n  if (parsed.confidence !== undefined) {\n    const conf = parseInt(parsed.confidence, 10);\n    if (!isNaN(conf)) parsedConfidence = Math.max(0, Math.min(100, conf));\n  }\n  if (parsed.summary) parsedSummary = String(parsed.summary).trim();\n} catch (e) {\n  // Regex fallback if JSON is malformed\n  const catMatch = rawText.match(/\"category\"\\s*:\\s*\"([^\"]+)\"/i);\n  const roleMatch = rawText.match(/\"routed_role\"\\s*:\\s*\"([^\"]+)\"/i);\n  const confMatch = rawText.match(/\"confidence\"\\s*:\\s*(\\d+)/i);\n  const sumMatch = rawText.match(/\"summary\"\\s*:\\s*\"([^\"]+)\"/i);\n  if (catMatch) parsedCategory = catMatch[1].trim().toLowerCase();\n  if (roleMatch) parsedRole = roleMatch[1].trim().toLowerCase();\n  if (confMatch) parsedConfidence = Math.max(0, Math.min(100, parseInt(confMatch[1], 10)));\n  if (sumMatch) parsedSummary = sumMatch[1].trim();\n}\n\n// Normalize and validate category (fallback: 'other')\nconst finalCategory = ALLOWED_CATEGORIES.includes(parsedCategory) ? parsedCategory : 'other';\n\n// SAFETY FALLBACK FOR ROUTED_ROLE:\n// The Supabase check constraint 'check_email_routed_role' strictly allows ONLY:\n// ['director', 'senior_admin', 'progressor', 'accountant'].\n// Default unrecognised/invalid roles to 'senior_admin' so the database insert never fails.\nconst finalRole = ALLOWED_ROLES.includes(parsedRole) ? parsedRole : 'senior_admin';\n\nif (!parsedSummary) {\n  parsedSummary = `Email from ${$('TEST EMAIL — NPH Job Update').item.json.from_name || 'sender'} regarding ${$('TEST EMAIL — NPH Job Update').item.json.subject || 'inquiry'}.`;\n}\n\nreturn {\n  json: {\n    category: finalCategory,\n    routed_role: finalRole,\n    confidence: parsedConfidence,\n    summary: parsedSummary,\n    raw_classification_text: rawText\n  }\n};"
-      },
-      "id": "61241bb2-0f8c-4e0b-912a-b9507af8b562",
-      "name": "Parse Classification",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        656,
-        -16
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "getAll",
-        "tableId": "accounts",
-        "limit": 1,
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "email_address",
-              "condition": "eq",
-              "keyValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.account_email }}"
-            }
-          ]
-        }
-      },
-      "id": "20622d54-ffa3-4a2f-85df-a1631da8de47",
-      "name": "Supabase — Get Account",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        896,
-        0
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "BDe43mwX8QIFuvEf",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "tableId": "emails",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "account_id",
-              "fieldValue": "={{ $('Supabase — Get Account').item.json.id }}"
-            },
-            {
-              "fieldId": "message_id",
-              "fieldValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.message_id }}"
-            },
-            {
-              "fieldId": "from_address",
-              "fieldValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.from_address }}"
-            },
-            {
-              "fieldId": "from_name",
-              "fieldValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.from_name }}"
-            },
-            {
-              "fieldId": "subject",
-              "fieldValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.subject }}"
-            },
-            {
-              "fieldId": "body_text",
-              "fieldValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.body_text }}"
-            },
-            {
-              "fieldId": "received_at",
-              "fieldValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.received_at }}"
-            },
-            {
-              "fieldId": "category",
-              "fieldValue": "={{ $('Parse Classification').item.json.category }}"
-            },
-            {
-              "fieldId": "routed_role",
-              "fieldValue": "={{ $('Parse Classification').item.json.routed_role }}"
-            },
-            {
-              "fieldId": "status",
-              "fieldValue": "classified"
-            }
-          ]
-        }
-      },
-      "id": "64eb654d-53b6-4e65-8e9a-a1ec31cfb10d",
-      "name": "Supabase — Insert Email",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        1120,
-        0
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "BDe43mwX8QIFuvEf",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "tableId": "audit_log",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "email_id",
-              "fieldValue": "={{ $('Supabase — Insert Email').item.json.id }}"
-            },
-            {
-              "fieldId": "action",
-              "fieldValue": "classified"
-            },
-            {
-              "fieldId": "details",
-              "fieldValue": "={{ JSON.stringify({ category: $('Parse Classification').item.json.category, routed_role: $('Parse Classification').item.json.routed_role, confidence: $('Parse Classification').item.json.confidence, summary: $('Parse Classification').item.json.summary }) }}"
-            }
-          ]
-        }
-      },
-      "id": "30f74f6c-eefc-43a2-bf87-28c1c613a877",
-      "name": "Supabase — Audit Log (Classified)",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        1344,
-        0
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "BDe43mwX8QIFuvEf",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "modelId": {
-          "__rl": true,
-          "cachedResultName": "GPT-4O",
-          "mode": "list",
-          "value": "gpt-4o"
-        },
-        "responses": {
-          "values": [
-            {
-              "role": "system",
-              "content": "=You are drafting a reply on behalf of Allsaints Builders, a construction company.\n\nFirst, identify the specific question, request, or action item in the original email.\nWrite a professional, concise reply that directly addresses that specific request:\n- Identify exactly which facts the email is asking for (a date, price, decision, quantity, confirmation, etc.).\n- For each fact you do not have, you MUST insert a placeholder in square brackets exactly where that fact belongs in the sentence — e.g. \"The completion date is [CONFIRM COMPLETION DATE].\" Do NOT write a fluent sentence that implies you know or will provide the answer (e.g. \"I will confirm by Friday\") — that is treated as inventing a fact, even without a specific number, because it makes a commitment you cannot verify.\n- Only reference dates/deadlines that were explicitly stated BY THE SENDER as their own deadline — never state or imply a date as something Allsaints is committing to unless it was given to you as a known fact.\n- If the email requires a decision or action, address it directly rather than deflecting.\n- Avoid generic filler like \"feel free to reach out\" or \"let us know if you need anything\" unless it adds real value beyond restating that you received the email.\n\nTONE — adapt your writing style based on the routed_role provided in the user message.\nYou will be told which one role applies to this specific email. Use ONLY that role's tone:\n\n- director: Formal and concise. No filler, no hedging, no small talk. Assume the\n  reader is time-poor and wants the decision or fact stated plainly. Sentences should\n  be short and direct. Avoid over-explaining — a director wants the bottom line, not\n  the reasoning path.\n\n- senior_admin: Professional and neutral. Slightly warmer than the director tone but\n  still businesslike — this is the default UK-professional register. Clear, polite,\n  no jargon, no excessive formality either.\n\n- progressor: Technical and job-focused. Reference job numbers, site details, and\n  council/contract specifics precisely and confidently where they appear in the\n  original email. Direct, practical, no unnecessary pleasantries — written the way one\n  tradesperson or ops contact writes to another.\n\n- accountant: Precise and figures-forward. Lead with the concrete number, date, or\n  status when known; use placeholders per the rules above when not known. Avoid\n  vague language around amounts, invoice numbers, or payment status — precision\n  matters more than warmth here.\n\nRegardless of tone, all placeholder and fact-verification rules above apply\nidentically — tone changes HOW something is said, never whether a fact is invented.\n\nKeep the tone appropriate to a UK building company communicating with clients, council\ncontacts, or internal team members, within the specific role register above.\n\nDo not include a subject line — body text only.\nRespond with the reply text only, no preamble or explanation."
-            },
-            {
-              "content": "='Context:\n- Category: {{ $('Parse Classification').item.json.category }}\n- Routed Role: {{ $('Parse Classification').item.json.routed_role }}\n\nIncoming Email:\nFrom: {{ $('TEST EMAIL — NPH Job Update').item.json.from_name }}, {{ $('TEST EMAIL — NPH Job Update').item.json.from_address }}\nSubject: {{ $('TEST EMAIL — NPH Job Update').item.json.subject }}\n\nemail body - {{ $('TEST EMAIL — NPH Job Update').item.json.body_text }}\n\nRouted role (use this tone): {{ $('Parse Classification').item.json.routed_role }}\n"
-            }
-          ]
-        },
-        "builtInTools": {},
-        "options": {
-          "temperature": 0.7
-        }
-      },
-      "id": "b302debd-2202-4d46-907b-c932cf10d7ea",
-      "name": "OpenAI — Draft Reply",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 2.3,
-      "position": [
-        1568,
-        -80
-      ],
-      "credentials": {
-        "openAiApi": {
-          "id": "XX9GrdRRSgVWcwot",
-          "name": "OpenAi account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "tableId": "drafts",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "email_id",
-              "fieldValue": "={{ $('Supabase — Insert Email').item.json.id }}"
-            },
-            {
-              "fieldId": "ai_generated_text",
-              "fieldValue": "={{ $json.text || ($json.output && $json.output[0] && $json.output[0].content && $json.output[0].content[0] && $json.output[0].content[0].text) || ($json.message && $json.message.content) || '' }}"
-            },
-            {
-              "fieldId": "edited_text",
-              "fieldValue": "={{ $json.text || ($json.output && $json.output[0] && $json.output[0].content && $json.output[0].content[0] && $json.output[0].content[0].text) || ($json.message && $json.message.content) || '' }}"
-            },
-            {
-              "fieldId": "draft_type",
-              "fieldValue": "ai_generated"
-            },
-            {
-              "fieldId": "status",
-              "fieldValue": "pending"
-            }
-          ]
-        }
-      },
-      "id": "ca39d1dc-b9c0-4cc8-8549-7ade9d5e365f",
-      "name": "Supabase — Insert Draft",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        1920,
-        0
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "BDe43mwX8QIFuvEf",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "tableId": "audit_log",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "email_id",
-              "fieldValue": "={{ $('Supabase — Insert Email').item.json.id }}"
-            },
-            {
-              "fieldId": "draft_id",
-              "fieldValue": "={{ $('Supabase — Insert Draft').item.json.id }}"
-            },
-            {
-              "fieldId": "action",
-              "fieldValue": "drafted"
-            }
-          ]
-        }
-      },
-      "id": "f628e6c4-5b19-4621-8291-5d68accaf47f",
-      "name": "Supabase — Audit Log (Drafted)",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        2224,
-        0
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "BDe43mwX8QIFuvEf",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "content": "**Test Email Notice**\nThis node provides test email data for development. It will be replaced by a real IMAP Trigger node later — all downstream fields (from_address, from_name, subject, body_text, message_id, received_at, account_email) must be preserved.",
-        "height": 248,
-        "width": 492,
-        "color": "#000000"
-      },
-      "id": "efcae9cd-23bc-4d44-bbde-51945a82cdf6",
-      "name": "Sticky Note 11af07dd",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        2368,
-        -512
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## 🏷️ Classification\nSystem prompt is a first-draft triage prompt and will be refined based on real-world test results.",
-        "height": 200,
-        "width": 300,
-        "color": "#000000"
-      },
-      "id": "41d73daa-b1b8-4d9e-8d0d-6a26793cb7bb",
-      "name": "Sticky Note 73a18d9c",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        272,
-        -224
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## ✍️ Reply Drafting\nTone customization per role (e.g. formal for directors, technical for ops) is a future refinement — this is a generic first-pass prompt.",
-        "height": 200,
-        "width": 300,
-        "color": "#000000"
-      },
-      "id": "7457a352-816c-40d0-ba8b-6bf625fc8680",
-      "name": "Sticky Note 58947316",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        1536,
-        -304
-      ]
-    },
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "foreman-send-on-approval",
-        "options": {}
-      },
-      "id": "a9d22981-790b-4c83-8dd1-41d42360df88",
-      "name": "Webhook — Draft Approved",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
-      "position": [
-        -224,
-        400
-      ],
-      "webhookId": "2259d776-ced3-4b4c-a4c1-2ab9dc7b6283"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "combinator": "and",
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "leftValue": "={{ $json.body?.record?.status || $json.record?.status }}",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              },
-              "rightValue": "approved"
-            },
-            {
-              "leftValue": "={{ $json.body?.record?.edited_text || $json.record?.edited_text }}",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty"
-              },
-              "rightValue": ""
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "8d8b9d13-d593-46f2-91fc-96b11483a370",
-      "name": "Sanity Check (Approved & Has Body)",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
-      "position": [
-        0,
-        400
-      ]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "draft-id",
-              "name": "draft_id",
-              "value": "={{ $json.body?.record?.id || $json.record?.id }}",
-              "type": "string"
-            },
-            {
-              "id": "email-id",
-              "name": "email_id",
-              "value": "={{ $json.body?.record?.email_id || $json.record?.email_id }}",
-              "type": "string"
-            },
-            {
-              "id": "body-to-send",
-              "name": "body_to_send",
-              "value": "={{ $json.body?.record?.edited_text || $json.record?.edited_text }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "48f26b6a-150c-46a9-88a3-a7ce489b885e",
-      "name": "Extract Send Fields",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.5,
-      "position": [
-        240,
-        384
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "get",
-        "tableId": "emails",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "keyValue": "={{ $('Extract Send Fields').item.json.email_id }}"
-            }
-          ]
-        }
-      },
-      "id": "bc8b101d-940b-4334-9551-62c2cf4a3cd3",
-      "name": "Supabase — Get Email",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        448,
-        400
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "BDe43mwX8QIFuvEf",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "tableId": "drafts",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $('Extract Send Fields').item.json.draft_id }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "status",
-              "fieldValue": "sent"
-            },
-            {
-              "fieldId": "sent_at",
-              "fieldValue": "={{ $now.toISO() }}"
-            }
-          ]
-        }
-      },
-      "id": "0da80d72-6590-41d6-af22-9e6ec79434ab",
-      "name": "Supabase — Update Draft (Sent)",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        1120,
-        400
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "BDe43mwX8QIFuvEf",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "tableId": "emails",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $('Extract Send Fields').item.json.email_id }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "status",
-              "fieldValue": "sent"
-            }
-          ]
-        }
-      },
-      "id": "70268eb4-dadc-4272-9ae2-3793c85a57e5",
-      "name": "Supabase — Update Email (Sent)",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        1344,
-        400
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "BDe43mwX8QIFuvEf",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "tableId": "audit_log",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "email_id",
-              "fieldValue": "={{ $('Extract Send Fields').item.json.email_id }}"
-            },
-            {
-              "fieldId": "draft_id",
-              "fieldValue": "={{ $('Extract Send Fields').item.json.draft_id }}"
-            },
-            {
-              "fieldId": "action",
-              "fieldValue": "sent"
-            },
-            {
-              "fieldId": "details",
-              "fieldValue": "={{ JSON.stringify({ to: $('Supabase — Get Email').item.json.from_address, account: $('Supabase — Get Account1').item.json.email_address, subject: $('Supabase — Get Email').item.json.subject }) }}"
-            }
-          ]
-        }
-      },
-      "id": "5a4b0152-be62-4328-ae92-8028a2c05ea0",
-      "name": "Supabase — Audit Log (Sent)",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        1568,
-        400
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "BDe43mwX8QIFuvEf",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "get",
-        "tableId": "accounts",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "keyValue": "={{ $('Supabase — Get Email').item.json.account_id }}"
-            }
-          ]
-        }
-      },
-      "id": "151cc8b9-dca7-4407-ba7d-b9a53894d435",
-      "name": "Supabase — Get Account1",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        672,
-        400
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "BDe43mwX8QIFuvEf",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "// Email Dispatch with RFC 2822 In-Reply-To and References Threading Headers\nconst email = $('Supabase — Get Email').item.json;\nconst account = $('Supabase — Get Account1').item.json;\nconst sendFields = $('Extract Send Fields').item.json;\n\nconst originalSubject = email.subject || '';\nconst subject = originalSubject.toLowerCase().startsWith('re:') ? originalSubject : `Re: ${originalSubject}`;\nconst messageId = email.message_id || `<${Date.now()}@allsaintsbuilders.com>`;\n\nconst emailPayload = {\n  from: account.email_address,\n  to: email.from_address,\n  subject: subject,\n  body_text: sendFields.body_to_send,\n  headers: {\n    'In-Reply-To': messageId,\n    'References': messageId,\n    'X-Mailer': 'Foreman AI Email Agent'\n  },\n  dispatched_at: new Date().toISOString(),\n  status: 'dispatched'\n};\n\nreturn { json: emailPayload };"
-      },
-      "id": "9d34ab2f-143f-43ad-8fad-06e0c6248f92",
-      "name": "Send Email (SMTP Relay with Threading)",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        896,
-        400
-      ]
-    },
-    {
-      "parameters": {
-        "content": "# 📥 WORKFLOW 1: Ingest, Classify & Draft\n---\n**Trigger:** Incoming email received at info@ or team@ (simulated in dev with test Set node).\n**AI Logic:** Classifies category/priority and routed role via OpenAI GPT-4o, writes email record to Supabase, generates AI draft reply, and records audit trail.",
-        "height": 180,
-        "width": 640,
-        "color": "#000000"
-      },
-      "id": "314c0526-249c-4724-876d-27c4c9ccaf23",
-      "name": "Title — Workflow 1: Ingest, Classify & Draft",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -1056,
-        -48
-      ]
-    },
-    {
-      "parameters": {
-        "content": "# 📤 WORKFLOW 2: Send on Approval\n---\n**Trigger:** Supabase Database Webhook fired when `drafts.status = 'approved'`.\n**Action:** Sanity-checks status, fetches parent email & inbox metadata, sets RFC 2822 `In-Reply-To` and `References` headers for thread nesting, dispatches email, updates `drafts` and `emails` to `status = 'sent'`, and creates audit log entry.",
-        "height": 180,
-        "width": 640,
-        "color": "#000000"
-      },
-      "id": "62509638-8fda-475b-865f-984fdbb371d0",
-      "name": "Title — Workflow 2: Send on Approval",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -1056,
-        384
-      ]
-    }
+  "active": true,
+  "isArchived": false,
+  "versionId": "15a5a7c3-2516-4d4e-8738-788940ebc749",
+  "activeVersionId": "15a5a7c3-2516-4d4e-8738-788940ebc749",
+  "triggerCount": 1,
+  "nodeCount": 24,
+  "createdAt": "2026-09-09T12:08:53.268Z",
+  "updatedAt": "2026-09-21T16:34:07.015Z",
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "tags": [],
+  "parentFolderId": null,
+  "scopes": [
+    "execution:reveal",
+    "workflow:create",
+    "workflow:delete",
+    "workflow:disableRedaction",
+    "workflow:enableRedaction",
+    "workflow:execute",
+    "workflow:execute-chat",
+    "workflow:export",
+    "workflow:import",
+    "workflow:list",
+    "workflow:move",
+    "workflow:publish",
+    "workflow:read",
+    "workflow:share",
+    "workflow:unpublish",
+    "workflow:unshare",
+    "workflow:update"
   ],
-  "pinData": {},
+  "canExecute": true,
   "connections": {
     "Manual Trigger": {
       "main": [
@@ -758,17 +64,6 @@
         [
           {
             "node": "Parse Classification",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Classification": {
-      "main": [
-        [
-          {
-            "node": "Supabase — Get Account",
             "type": "main",
             "index": 0
           }
@@ -917,22 +212,759 @@
           }
         ]
       ]
+    },
+    "Parse Classification": {
+      "main": [
+        [
+          {
+            "node": "Supabase — Get Account",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": true,
-  "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate",
-    "availableInMCP": true
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "40e9b884-4567-4490-b0a5-53ec271b1848",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2592,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "from_address",
+              "name": "from_address",
+              "type": "string",
+              "value": "nphadfinance.nph@nph.org.uk"
+            },
+            {
+              "id": "from_name",
+              "name": "from_name",
+              "type": "string",
+              "value": "Sarah Jenkins (NPH Finance)"
+            },
+            {
+              "id": "subject",
+              "name": "subject",
+              "type": "string",
+              "value": "URGENT: DISREP Payment Cert - Immediate Director Sign-off Required"
+            },
+            {
+              "id": "body_text",
+              "name": "body_text",
+              "type": "string",
+              "value": "URGENT: Please find attached the DISREP Payment Cert for works at 42 High Street. The overdue balance of £14,250 requires immediate director review and sign-off today before 5pm to avoid payment hold and suspension of services. Please confirm once approved."
+            },
+            {
+              "id": "message_id",
+              "name": "message_id",
+              "type": "string",
+              "value": "<test-pipeline-20260916-001@allsaintsbuilders.com>"
+            },
+            {
+              "id": "received_at",
+              "name": "received_at",
+              "type": "string",
+              "value": "2026-09-16T18:30:00.000Z"
+            },
+            {
+              "id": "account_email",
+              "name": "account_email",
+              "type": "string",
+              "value": "info@allsaintsbuilders.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c0315ab7-12fd-4fee-a1f2-2f3ca950af76",
+      "name": "TEST EMAIL — NPH Job Update",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2352,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "cachedResultName": "GPT-4O",
+          "mode": "list",
+          "value": "gpt-4o",
+          "cachedResultUrl": ""
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are an email triage assistant for Allsaints Builders, a UK construction company.\nYou must classify every email using the client's own operational taxonomy below — do not\ninvent categories or roles outside this list.\n\nClassify the email into exactly one THEME, one URGENCY level, and one or more ROUTED ROLES.\n\nTHEMES (pick exactly one):\n\nNote: the keyword/sender lists under each theme below are illustrative examples, not exhaustive\nrequirements. Judge each email by its core subject matter and meaning — do not require literal\npresence of a listed keyword before matching a theme.\n\n- accounts: general account-holder correspondence, not fitting a more specific theme below\n- orders: purchase orders and supplier order confirmations. Keywords/senders: Supra UK Limited,\n  Valliant, Brewers, Scottish Power, Tool Station\n- finance: any correspondence involving financial discrepancies, payment queries, statement\n  errors, account balances, or payment certification — regardless of whether it uses specific\n  NPH finance terminology. This includes NPH-specific finance contacts and terms (e.g.\n  nphadfinance.nph@nph.org.uk, finance.nph@nph.org.uk, \"PAYMENT CERT\", \"NPH AD FINANCE\",\n  \"DISREP Payment Cert\", \"Overdue Invoice\", Hastings) as well as general financial queries that\n  don't mention any of these specifically — e.g. someone flagging that a figure on a recent\n  statement looks wrong, or asking about an outstanding balance. Judge by whether the email's\n  core subject matter is financial, not by presence of these specific keywords.\n- suppliers: supplier relationship/account correspondence (distinct from one-off orders above).\n  Keywords/senders: Plumb World, Brewers, Tomred Scaffold\n- promotions: marketing offers and promotional emails. Keywords: \"Offers\"\n  Important: \"promotions\" applies only to genuine marketing/promotional content from businesses\n  Allsaints actually has a relationship with (suppliers, trade contacts, industry partners) —\n  e.g. a supplier offering a seasonal discount. It does NOT apply to generic spam, phishing,\n  prize/lottery content, or marketing-style language from unrelated senders with no connection\n  to Allsaints' construction business, even if the wording resembles a promotional offer\n  (\"exclusive,\" \"claim now,\" \"limited time\"). Judge by whether the sender and subject matter\n  are plausibly connected to Allsaints' actual business — not by tone or wording alone. If an\n  email is generic spam or clearly unrelated to construction/property/trade business, classify\n  as \"accounts\" with low confidence, regardless of how promotional its language sounds.\n- nph_jobs: NPH / Northampton Council job and repairs correspondence. Keywords: NPH, Disrepair,\n  Urgent, Emergency, DM, A&A, \"DAMP AND MOULD\", VOID, DISRP\n- meetings_appointments: meeting or appointment scheduling and confirmations\n- invoices: any correspondence primarily about a specific invoice — a query, dispute, request\n  for copy/reissue, or status check on an invoice, whether or not it references NPH or HIRE\n  specifically. A named invoice number or a clear invoice-related request (e.g. \"can you confirm\n  invoice #3391 was received,\" \"chasing an invoice from last month\") should be classified as\n  invoices even without those keywords present.\n- certificates: compliance certificates. Keywords: \"MINOR WORKS\", ELECTRICAL, GAS, ROOF\n\nNote: some keywords appear under multiple themes (e.g. \"NPH\" appears under finance, nph_jobs,\nand invoices; \"Brewers\" appears under both orders and suppliers). When a keyword is ambiguous,\nuse the surrounding email content to decide which theme actually fits — do not default to the\nfirst matching theme mechanically. If genuinely unclear, choose \"accounts\" as the fallback and\nset confidence low.\n\nURGENCY (pick exactly one, independent of theme):\n\n- urgent: needs response within hours — explicit urgency language, emergency, disrepair with\n  safety implications, same-day deadlines\n- priority: important but not same-day critical\n- normal: no time pressure indicated\n\nNote: words like \"Urgent\", \"Emergency\", \"DM\" can appear inside an nph_jobs-themed email as\ncontent signals for urgency — they are not themes in themselves. Extract urgency separately\nfrom theme even when they come from the same source text.\n\nROUTED ROLES — assign based on theme, using this exact mapping (an email can have more than\none routed role):\n\n- accounts → director\n- orders → senior_admin\n- finance → director\n- suppliers → director, senior_admin\n- promotions → senior_admin\n- nph_jobs → senior_admin\n- meetings_appointments → senior_admin, director\n- invoices → director\n- certificates → senior_admin, director\n\nAlso provide:\n- confidence: a number 0.0-1.0 reflecting how confident you are in the theme classification\n- summary: a one-sentence plain-English summary of what the email is about, for a human reviewer\n\nRespond ONLY with valid JSON, no other text, no markdown formatting:\n{\n  \"theme\": \"...\",\n  \"urgency\": \"...\",\n  \"routed_roles\": [\"...\", \"...\"],\n  \"confidence\": 0.0,\n  \"summary\": \"...\"\n}"
+            },
+            {
+              "content": "=FROM:- {{ $json.from_name }}\nsender's address:- {{ $json.from_address }}\n\nsubject - {{ $json.subject }}\n\nbody -  {{ $json.body_text }}\n\nrecieved on - {{ $json.account_email }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "ea106c52-94fb-4821-b764-af1246160c2c",
+      "name": "OpenAI — Classify",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -2064,
+        512
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "xxNO3dVIxUIn1AUg",
+          "name": "API testing"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Robust extraction across different OpenAI / LLM node output formats\nlet rawText = '';\nconst item = $input.item.json;\n\nif (typeof item === 'string') {\n  rawText = item;\n} else if (item.text) {\n  rawText = item.text;\n} else if (item.response) {\n  rawText = item.response;\n} else if (item.output && Array.isArray(item.output) && item.output[0]?.content) {\n  const contentObj = item.output[0].content;\n  if (Array.isArray(contentObj) && contentObj[0]?.text) {\n    rawText = contentObj[0].text;\n  } else if (typeof contentObj === 'string') {\n    rawText = contentObj;\n  }\n} else if (item.message && item.message.content) {\n  rawText = typeof item.message.content === 'string' ? item.message.content : JSON.stringify(item.message.content);\n} else {\n  rawText = JSON.stringify(item);\n}\n\n// Clean markdown code fences and extraneous whitespace\nrawText = rawText.replace(/```json\\s*/gi, '').replace(/```\\s*/gi, '').trim();\n\n// Allowed values from the theme-routing v2 schema (Supabase 'emails' CHECK constraints)\nconst ALLOWED_THEMES = ['accounts', 'orders', 'finance', 'suppliers', 'promotions', 'nph_jobs', 'meetings_appointments', 'invoices', 'certificates'];\nconst ALLOWED_URGENCY = ['urgent', 'priority', 'normal'];\nconst ALLOWED_ROLES = ['director', 'senior_admin', 'progressor', 'accountant'];\n\n// Authoritative theme -> routed_roles fallback mapping (used only if the model's\n// routed_roles is missing/invalid — the model is expected to apply this itself)\nconst THEME_ROLE_MAP = {\n  accounts: ['director'],\n  orders: ['senior_admin'],\n  finance: ['director'],\n  suppliers: ['director', 'senior_admin'],\n  promotions: ['senior_admin'],\n  nph_jobs: ['senior_admin'],\n  meetings_appointments: ['senior_admin', 'director'],\n  invoices: ['director'],\n  certificates: ['senior_admin', 'director'],\n};\n\nlet parsedTheme = '';\nlet parsedUrgency = '';\nlet parsedRoles = [];\nlet parsedConfidence = 0.5;\nlet parsedSummary = '';\n\ntry {\n  const jsonMatch = rawText.match(/\\{[\\s\\S]*\\}/);\n  const jsonStr = jsonMatch ? jsonMatch[0] : rawText;\n  const parsed = JSON.parse(jsonStr);\n  if (parsed.theme) parsedTheme = String(parsed.theme).trim().toLowerCase();\n  if (parsed.urgency) parsedUrgency = String(parsed.urgency).trim().toLowerCase();\n\n  // routed_roles: defensively coerce a bare string into a one-element array\n  if (Array.isArray(parsed.routed_roles)) {\n    parsedRoles = parsed.routed_roles.map((r) => String(r).trim().toLowerCase());\n  } else if (typeof parsed.routed_roles === 'string' && parsed.routed_roles.trim()) {\n    parsedRoles = [parsed.routed_roles.trim().toLowerCase()];\n  }\n\n  if (parsed.confidence !== undefined) {\n    const conf = parseFloat(parsed.confidence);\n    if (!isNaN(conf)) parsedConfidence = Math.max(0, Math.min(1, conf));\n  }\n  if (parsed.summary) parsedSummary = String(parsed.summary).trim();\n} catch (e) {\n  // Regex fallback if JSON is malformed\n  const themeMatch = rawText.match(/\"theme\"\\s*:\\s*\"([^\"]+)\"/i);\n  const urgencyMatch = rawText.match(/\"urgency\"\\s*:\\s*\"([^\"]+)\"/i);\n  const rolesMatch = rawText.match(/\"routed_roles\"\\s*:\\s*(\\[[^\\]]*\\]|\"[^\"]+\")/i);\n  const confMatch = rawText.match(/\"confidence\"\\s*:\\s*([\\d.]+)/i);\n  const sumMatch = rawText.match(/\"summary\"\\s*:\\s*\"([^\"]+)\"/i);\n  if (themeMatch) parsedTheme = themeMatch[1].trim().toLowerCase();\n  if (urgencyMatch) parsedUrgency = urgencyMatch[1].trim().toLowerCase();\n  if (rolesMatch) {\n    try {\n      const rolesParsed = JSON.parse(rolesMatch[1]);\n      parsedRoles = Array.isArray(rolesParsed)\n        ? rolesParsed.map((r) => String(r).trim().toLowerCase())\n        : [String(rolesParsed).trim().toLowerCase()];\n    } catch (e2) {\n      parsedRoles = [rolesMatch[1].replace(/\"/g, '').trim().toLowerCase()];\n    }\n  }\n  if (confMatch) parsedConfidence = Math.max(0, Math.min(1, parseFloat(confMatch[1])));\n  if (sumMatch) parsedSummary = sumMatch[1].trim();\n}\n\n// Normalize and validate theme (fallback: 'accounts', low confidence — per prompt's own fallback rule)\nconst themeIsValid = ALLOWED_THEMES.includes(parsedTheme);\nconst finalTheme = themeIsValid ? parsedTheme : 'accounts';\nif (!themeIsValid) parsedConfidence = Math.min(parsedConfidence, 0.3);\n\n// Normalize and validate urgency (fallback: 'normal')\nconst finalUrgency = ALLOWED_URGENCY.includes(parsedUrgency) ? parsedUrgency : 'normal';\n\n// Filter routed_roles to valid role strings only; fall back to the authoritative\n// theme -> roles mapping if the model returned nothing usable\nlet finalRoles = parsedRoles.filter((r) => ALLOWED_ROLES.includes(r));\nif (finalRoles.length === 0) {\n  finalRoles = THEME_ROLE_MAP[finalTheme] || ['senior_admin'];\n}\n\nif (!parsedSummary) {\n  parsedSummary = `Email from ${$('TEST EMAIL — NPH Job Update').item.json.from_name || 'sender'} regarding ${$('TEST EMAIL — NPH Job Update').item.json.subject || 'inquiry'}.`;\n}\n\nreturn {\n  json: {\n    theme: finalTheme,\n    urgency: finalUrgency,\n    routed_roles: finalRoles,\n    confidence: parsedConfidence,\n    summary: parsedSummary,\n    raw_classification_text: rawText\n  }\n};"
+      },
+      "id": "3139f916-1ce4-4700-9661-d27508fd0b45",
+      "name": "Parse Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1712,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "accounts",
+        "limit": 1,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email_address",
+              "condition": "eq",
+              "keyValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.account_email }}"
+            }
+          ]
+        }
+      },
+      "id": "e0027245-230f-4476-83f7-be412e7720f4",
+      "name": "Supabase — Get Account",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1472,
+        512
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "EqqtEkTECObLRIII",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "emails",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "account_id",
+              "fieldValue": "={{ $('Supabase — Get Account').item.json.id }}"
+            },
+            {
+              "fieldId": "message_id",
+              "fieldValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.message_id }}"
+            },
+            {
+              "fieldId": "from_address",
+              "fieldValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.from_address }}"
+            },
+            {
+              "fieldId": "from_name",
+              "fieldValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.from_name }}"
+            },
+            {
+              "fieldId": "subject",
+              "fieldValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.subject }}"
+            },
+            {
+              "fieldId": "body_text",
+              "fieldValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.body_text }}"
+            },
+            {
+              "fieldId": "received_at",
+              "fieldValue": "={{ $('TEST EMAIL — NPH Job Update').item.json.received_at }}"
+            },
+            {
+              "fieldId": "theme",
+              "fieldValue": "={{ $('Parse Classification').item.json.theme }}"
+            },
+            {
+              "fieldId": "urgency",
+              "fieldValue": "={{ $('Parse Classification').item.json.urgency }}"
+            },
+            {
+              "fieldId": "routed_roles",
+              "fieldValue": "={{ $('Parse Classification').item.json.routed_roles }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "classified"
+            }
+          ]
+        }
+      },
+      "id": "d8e01b1f-0f3c-4ca9-a83e-f6c7a74f6bb1",
+      "name": "Supabase — Insert Email",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1248,
+        512
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "EqqtEkTECObLRIII",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "audit_log",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "email_id",
+              "fieldValue": "={{ $('Supabase — Insert Email').item.json.id }}"
+            },
+            {
+              "fieldId": "action",
+              "fieldValue": "classified"
+            },
+            {
+              "fieldId": "details",
+              "fieldValue": "={{ JSON.stringify({ theme: $('Parse Classification').item.json.theme, urgency: $('Parse Classification').item.json.urgency, routed_roles: $('Parse Classification').item.json.routed_roles, confidence: $('Parse Classification').item.json.confidence, summary: $('Parse Classification').item.json.summary }) }}"
+            }
+          ]
+        }
+      },
+      "id": "14c7944c-e4fa-4f16-bc60-e2d8bdb6a870",
+      "name": "Supabase — Audit Log (Classified)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1024,
+        512
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "EqqtEkTECObLRIII",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "cachedResultName": "GPT-4O",
+          "mode": "list",
+          "value": "gpt-4o"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are drafting a reply on behalf of Allsaints Builders, a construction company.\n\nFirst, identify the specific question, request, or action item in the original email.\nWrite a professional, concise reply that directly addresses that specific request:\n- Identify exactly which facts the email is asking for (a date, price, decision, quantity, confirmation, etc.).\n- For each fact you do not have, you MUST insert a placeholder in square brackets exactly where that fact belongs in the sentence — e.g. \"The completion date is [CONFIRM COMPLETION DATE].\" Do NOT write a fluent sentence that implies you know or will provide the answer (e.g. \"I will confirm by Friday\") — that is treated as inventing a fact, even without a specific number, because it makes a commitment you cannot verify.\n- Only reference dates/deadlines that were explicitly stated BY THE SENDER as their own deadline — never state or imply a date as something Allsaints is committing to unless it was given to you as a known fact.\n- If the email requires a decision or action, address it directly rather than deflecting.\n- Avoid generic filler like \"feel free to reach out\" or \"let us know if you need anything\" unless it adds real value beyond restating that you received the email.\n\nTONE — adapt your writing style based on the routed_role provided in the user message.\nYou will be told which one role applies to this specific email. Use ONLY that role's tone:\n\n- director: Formal and concise. No filler, no hedging, no small talk. Assume the\n  reader is time-poor and wants the decision or fact stated plainly. Sentences should\n  be short and direct. Avoid over-explaining — a director wants the bottom line, not\n  the reasoning path.\n\n- senior_admin: Professional and neutral. Slightly warmer than the director tone but\n  still businesslike — this is the default UK-professional register. Clear, polite,\n  no jargon, no excessive formality either.\n\n- progressor: Technical and job-focused. Reference job numbers, site details, and\n  council/contract specifics precisely and confidently where they appear in the\n  original email. Direct, practical, no unnecessary pleasantries — written the way one\n  tradesperson or ops contact writes to another. (Currently unused pending v2/retainer\n  scope — nothing routes to this role under the theme-routing v2 mapping, kept for when\n  Progressor-specific routing is restored.)\n\n- accountant: Precise and figures-forward. Lead with the concrete number, date, or\n  status when known; use placeholders per the rules above when not known. Avoid\n  vague language around amounts, invoice numbers, or payment status — precision\n  matters more than warmth here. (Currently unused pending v2/retainer scope — nothing\n  routes to this role under the theme-routing v2 mapping, kept for when Accountant-specific\n  routing is restored.)\n\nRegardless of tone, all placeholder and fact-verification rules above apply\nidentically — tone changes HOW something is said, never whether a fact is invented.\n\nKeep the tone appropriate to a UK building company communicating with clients, council\ncontacts, or internal team members, within the specific role register above.\n\nDo not include a subject line — body text only.\nRespond with the reply text only, no preamble or explanation."
+            },
+            {
+              "content": "='Context:\n- Theme: {{ $('Parse Classification').item.json.theme }}\n- Urgency: {{ $('Parse Classification').item.json.urgency }}\n- Routed Roles: {{ $('Parse Classification').item.json.routed_roles.join(\", \") }}\n\nIncoming Email:\nFrom: {{ $('TEST EMAIL — NPH Job Update').item.json.from_name }}, {{ $('TEST EMAIL — NPH Job Update').item.json.from_address }}\nSubject: {{ $('TEST EMAIL — NPH Job Update').item.json.subject }}\n\nemail body - {{ $('TEST EMAIL — NPH Job Update').item.json.body_text }}\n\nRouted role (use this tone): {{ $('Parse Classification').item.json.routed_roles.includes('director') ? 'director' : ($('Parse Classification').item.json.routed_roles.includes('senior_admin') ? 'senior_admin' : ($('Parse Classification').item.json.routed_roles.includes('progressor') ? 'progressor' : ($('Parse Classification').item.json.routed_roles.includes('accountant') ? 'accountant' : $('Parse Classification').item.json.routed_roles[0]))) }}\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "26e532fb-8ac6-44fc-a7d6-caed239c9b1d",
+      "name": "OpenAI — Draft Reply",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -800,
+        432
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "xxNO3dVIxUIn1AUg",
+          "name": "API testing"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "drafts",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "email_id",
+              "fieldValue": "={{ $('Supabase — Insert Email').item.json.id }}"
+            },
+            {
+              "fieldId": "ai_generated_text",
+              "fieldValue": "={{ $json.text || ($json.output && $json.output[0] && $json.output[0].content && $json.output[0].content[0] && $json.output[0].content[0].text) || ($json.message && $json.message.content) || '' }}"
+            },
+            {
+              "fieldId": "edited_text",
+              "fieldValue": "={{ $json.text || ($json.output && $json.output[0] && $json.output[0].content && $json.output[0].content[0] && $json.output[0].content[0].text) || ($json.message && $json.message.content) || '' }}"
+            },
+            {
+              "fieldId": "draft_type",
+              "fieldValue": "ai_generated"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending"
+            }
+          ]
+        }
+      },
+      "id": "a5291dbc-27c5-4a24-bf27-aa7d77143631",
+      "name": "Supabase — Insert Draft",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        512
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "EqqtEkTECObLRIII",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "audit_log",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "email_id",
+              "fieldValue": "={{ $('Supabase — Insert Email').item.json.id }}"
+            },
+            {
+              "fieldId": "draft_id",
+              "fieldValue": "={{ $('Supabase — Insert Draft').item.json.id }}"
+            },
+            {
+              "fieldId": "action",
+              "fieldValue": "drafted"
+            }
+          ]
+        }
+      },
+      "id": "13a53fcc-3fe3-4fdc-8e05-3b337b5dcdc8",
+      "name": "Supabase — Audit Log (Drafted)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        512
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "EqqtEkTECObLRIII",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "**Test Email Notice**\nThis node provides test email data for development. It will be replaced by a real IMAP Trigger node later — all downstream fields (from_address, from_name, subject, body_text, message_id, received_at, account_email) must be preserved.",
+        "height": 248,
+        "width": 492,
+        "color": "#000000"
+      },
+      "id": "961be215-0415-4201-989e-d2d4e15e35a9",
+      "name": "Sticky Note 11af07dd",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🏷️ Classification\nSystem prompt is a first-draft triage prompt and will be refined based on real-world test results.",
+        "height": 200,
+        "width": 300,
+        "color": "#000000"
+      },
+      "id": "5b1b8a1d-103d-4c45-9c2e-c96a3037a14e",
+      "name": "Sticky Note 73a18d9c",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2096,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ✍️ Reply Drafting\nTone customization per role (e.g. formal for directors, technical for ops) implemented in the system prompt.\n\n**Multi-role tone tie-break (theme-routing v2):** when `routed_roles` has more than one value (suppliers, meetings_appointments, certificates), the draft prompt picks the tone role by seniority priority — director > senior_admin > progressor > accountant — not by array position. Fixed 2026-08-26 after the original `routed_roles[0]` rule was found to give senior_admin's tone to meetings_appointments/certificates (which list senior_admin first in the mapping table) instead of director's.",
+        "height": 200,
+        "width": 300,
+        "color": "#000000"
+      },
+      "id": "0b94f80c-5a5d-4d85-aa9d-7c5952fd7171",
+      "name": "Sticky Note 58947316",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -832,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "foreman-send-on-approval",
+        "options": {}
+      },
+      "id": "d20fea7e-cf53-4936-8ba5-da4479adabaa",
+      "name": "Webhook — Draft Approved",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2592,
+        912
+      ],
+      "webhookId": "2259d776-ced3-4b4c-a4c1-2ab9dc7b6283"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body?.record?.status || $json.record?.status }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "approved"
+            },
+            {
+              "leftValue": "={{ $json.body?.record?.edited_text || $json.record?.edited_text }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              },
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4c5636ff-364b-4c0f-be58-aabd21abaaf0",
+      "name": "Sanity Check (Approved & Has Body)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2368,
+        912
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "draft-id",
+              "name": "draft_id",
+              "value": "={{ $json.body?.record?.id || $json.record?.id }}",
+              "type": "string"
+            },
+            {
+              "id": "email-id",
+              "name": "email_id",
+              "value": "={{ $json.body?.record?.email_id || $json.record?.email_id }}",
+              "type": "string"
+            },
+            {
+              "id": "body-to-send",
+              "name": "body_to_send",
+              "value": "={{ $json.body?.record?.edited_text || $json.record?.edited_text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ed867a9d-cf94-4645-a917-62254a7be888",
+      "name": "Extract Send Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -2128,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "emails",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Extract Send Fields').item.json.email_id }}"
+            }
+          ]
+        }
+      },
+      "id": "25c22500-1275-48d1-85e2-2a77c586b1f1",
+      "name": "Supabase — Get Email",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1920,
+        912
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "EqqtEkTECObLRIII",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "drafts",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Extract Send Fields').item.json.draft_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "sent"
+            },
+            {
+              "fieldId": "sent_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "d1a10265-552d-461b-bfd6-9f6cbb2b8ffe",
+      "name": "Supabase — Update Draft (Sent)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1248,
+        912
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "EqqtEkTECObLRIII",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "emails",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Extract Send Fields').item.json.email_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "sent"
+            }
+          ]
+        }
+      },
+      "id": "6901c752-d353-4834-af38-748a4ea32ab4",
+      "name": "Supabase — Update Email (Sent)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1024,
+        912
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "EqqtEkTECObLRIII",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "audit_log",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "email_id",
+              "fieldValue": "={{ $('Extract Send Fields').item.json.email_id }}"
+            },
+            {
+              "fieldId": "draft_id",
+              "fieldValue": "={{ $('Extract Send Fields').item.json.draft_id }}"
+            },
+            {
+              "fieldId": "action",
+              "fieldValue": "sent"
+            },
+            {
+              "fieldId": "details",
+              "fieldValue": "={{ JSON.stringify({ to: $('Supabase — Get Email').item.json.from_address, account: $('Supabase — Get Account1').item.json.email_address, subject: $('Supabase — Get Email').item.json.subject }) }}"
+            }
+          ]
+        }
+      },
+      "id": "e02fdbe3-f0d1-421f-8871-5abf73d995c9",
+      "name": "Supabase — Audit Log (Sent)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        912
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "EqqtEkTECObLRIII",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "accounts",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Supabase — Get Email').item.json.account_id }}"
+            }
+          ]
+        }
+      },
+      "id": "69a08227-84ca-4c83-aff0-39442fc5faab",
+      "name": "Supabase — Get Account1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1696,
+        912
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "EqqtEkTECObLRIII",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Email Dispatch with RFC 2822 In-Reply-To and References Threading Headers\nconst email = $('Supabase — Get Email').item.json;\nconst account = $('Supabase — Get Account1').item.json;\nconst sendFields = $('Extract Send Fields').item.json;\n\nconst originalSubject = email.subject || '';\nconst subject = originalSubject.toLowerCase().startsWith('re:') ? originalSubject : `Re: ${originalSubject}`;\nconst messageId = email.message_id || `<${Date.now()}@allsaintsbuilders.com>`;\n\nconst emailPayload = {\n  from: account.email_address,\n  to: email.from_address,\n  subject: subject,\n  body_text: sendFields.body_to_send,\n  headers: {\n    'In-Reply-To': messageId,\n    'References': messageId,\n    'X-Mailer': 'Foreman AI Email Agent'\n  },\n  dispatched_at: new Date().toISOString(),\n  status: 'dispatched'\n};\n\nreturn { json: emailPayload };"
+      },
+      "id": "9deaedb1-7c45-4050-8ddf-1eabb149131e",
+      "name": "Send Email (SMTP Relay with Threading)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1472,
+        912
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# 📥 WORKFLOW 1: Ingest, Classify & Draft\n---\n**Trigger:** Incoming email received at info@ or team@ (simulated in dev with test Set node).\n**AI Logic:** Classifies category/priority and routed role via OpenAI GPT-4o, writes email record to Supabase, generates AI draft reply, and records audit trail.",
+        "height": 180,
+        "width": 640,
+        "color": "#000000"
+      },
+      "id": "4aaa80bb-2dba-4a52-ad02-d295f751b3df",
+      "name": "Title — Workflow 1: Ingest, Classify & Draft",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3424,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# 📤 WORKFLOW 2: Send on Approval\n---\n**Trigger:** Supabase Database Webhook fired when `drafts.status = 'approved'`.\n**Action:** Sanity-checks status, fetches parent email & inbox metadata, sets RFC 2822 `In-Reply-To` and `References` headers for thread nesting, dispatches email, updates `drafts` and `emails` to `status = 'sent'`, and creates audit log entry.",
+        "height": 180,
+        "width": 640,
+        "color": "#000000"
+      },
+      "id": "6be6b780-da93-4416-8b76-482487a51c06",
+      "name": "Title — Workflow 2: Send on Approval",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3424,
+        896
+      ]
+    }
+  ],
+  "nodeGroups": [],
+  "activeVersion": {
+    "sameAsDraft": true
   },
-  "versionId": "357a4fcf-be91-4857-b368-22c542d447e3",
   "meta": {
     "aiBuilderAssisted": true,
-    "builderVariant": "mcp",
-    "templateCredsSetupCompleted": true,
-    "instanceId": "b6000bdf37140f3e15b986c4593f9f4b33745224284ffb739db39e76093a6533"
-  },
-  "nodeGroups": [],
-  "id": "iZxVrliRwHKuzmzX",
-  "tags": []
+    "builderVariant": "mcp"
+  }
 }

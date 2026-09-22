@@ -8,7 +8,6 @@ import {
   Sparkles,
   CheckCircle2,
   AlertCircle,
-  ShieldAlert,
   Loader2,
   Lock,
   ChevronDown,
@@ -23,7 +22,8 @@ import {
   Building2,
   ExternalLink,
 } from 'lucide-react'
-import { CategoryBadge } from '@/components/CategoryBadge'
+import { ThemeBadge } from '@/components/ThemeBadge'
+import { UrgencyBadge } from '@/components/UrgencyBadge'
 import { StatusBadge } from '@/components/StatusBadge'
 import { parseVoiceCommand, VoiceActionType } from '@/lib/voice-commands'
 import {
@@ -44,8 +44,9 @@ export interface VoiceEmailViewProps {
     body_text: string | null
     body_html: string | null
     received_at: string
-    category: string | null
-    routed_role: string | null
+    theme: string | null
+    urgency: string | null
+    routed_roles: string[] | null
     status: string
     accounts?: {
       email_address: string
@@ -68,6 +69,24 @@ export interface VoiceEmailViewProps {
 }
 
 type VoiceUIState = 'idle' | 'listening' | 'processing' | 'speaking'
+
+// Tier 2 activity indicator: one component, recolored per mode, so "the app is
+// talking" and "the app is listening to you" read as variations on the same
+// live-activity language rather than two unrelated widgets.
+function ActivityEqualizer({ mode }: { mode: 'speaking' | 'listening' }) {
+  const barColor = mode === 'listening' ? 'bg-[var(--voice-listening-accent)]' : 'bg-amber-500'
+  return (
+    <span className="inline-flex items-end gap-0.5 h-4 shrink-0" aria-hidden="true">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <span
+          key={i}
+          className={`w-1 h-full rounded-full origin-bottom animate-[voice-eq_0.9s_ease-in-out_infinite] ${barColor}`}
+          style={{ animationDelay: `${i * 0.12}s` }}
+        />
+      ))}
+    </span>
+  )
+}
 
 export function VoiceEmailView({
   email,
@@ -102,10 +121,14 @@ export function VoiceEmailView({
 
   const [isPending, startTransition] = useTransition()
 
-  const isUrgent = (email.category || '').toLowerCase() === 'urgent'
   const isSent = draft?.status === 'sent' || email.status === 'sent'
   const isApproved = draft?.status === 'approved' || email.status === 'approved'
   const isLocked = isApproved || isSent
+  // Some transitions (discard, manual save) set isPending without ever setting
+  // uiState to 'processing', which left the mic button looking idle/interactive
+  // while actually disabled. Broadens the *visual* busy check to match what the
+  // button's disabled attribute already covers — no change to the disabled logic itself.
+  const showMicBusy = uiState === 'processing' || (isPending && uiState !== 'listening' && uiState !== 'speaking')
 
   // Sync state if initial server props change
   useEffect(() => {
@@ -328,6 +351,16 @@ export function VoiceEmailView({
     return parts.join(' ')
   }
 
+  // Marks the "TTS finished, awaiting input" state explicitly instead of leaving
+  // the stale "Playing your email..." banner text up once playback has actually
+  // ended (Phase 0 audit finding: this state previously had zero distinct treatment).
+  const handleIntroPlaybackEnd = () => {
+    setFeedback({
+      type: 'info',
+      message: 'Ready — hold the button below to speak a command or dictate your reply.',
+    })
+  }
+
   // 3. Auto-play assistant-style intro on load
   useEffect(() => {
     if (isLocked) return
@@ -337,7 +370,7 @@ export function VoiceEmailView({
         type: 'info',
         message: 'Playing your email... Hold button below to speak a command or dictate reply.',
       })
-      playTTS(buildIntroText())
+      playTTS(buildIntroText(), handleIntroPlaybackEnd)
     }, 400)
 
     return () => {
@@ -423,7 +456,7 @@ export function VoiceEmailView({
 
       if (!transcript) {
         setUiState('idle')
-        setFeedback({ type: 'warning', message: 'Could not hear any speech. Please try holding the button again.' })
+        setFeedback({ type: 'warning', message: "Didn't catch anything. Hold the button and try again." })
         return
       }
 
@@ -489,13 +522,13 @@ export function VoiceEmailView({
           body: JSON.stringify({
             currentDraft: currentDraft,
             instruction,
-            routedRole: email.routed_role,
+            routedRoles: email.routed_roles,
             emailContext: {
               from_name: email.from_name,
               from_address: email.from_address,
               subject: email.subject,
-              category: email.category,
-              routed_role: email.routed_role,
+              theme: email.theme,
+              routed_roles: email.routed_roles,
             },
             token,
             emailId: email.id,
@@ -579,7 +612,21 @@ export function VoiceEmailView({
       return
     }
 
-    // F. Apply Edit (Spoken instruction / dictation incorporated contextually into draft)
+    // F. Unrecognized / low-confidence input (Phase 5 exception to the no-logic-
+    // change rule: parseVoiceCommand now rejects single-word/empty transcripts
+    // instead of silently applying them as a draft edit — this just surfaces
+    // that rejection as a distinct, audible state rather than a no-op)
+    if (action === 'unrecognized') {
+      setUiState('idle')
+      setFeedback({
+        type: 'warning',
+        message: "Didn't catch a command. Hold the button and try again — say a command or a full instruction.",
+      })
+      await playTTS("Sorry, I didn't catch that. Please hold the button and try again.")
+      return
+    }
+
+    // G. Apply Edit (Spoken instruction / dictation incorporated contextually into draft)
     const editInstruction = command.editInstruction || rawText
     if (editInstruction && editInstruction.trim()) {
       const currentDraft = (draftText || draft?.edited_text || draft?.ai_generated_text || '').trim()
@@ -623,13 +670,13 @@ export function VoiceEmailView({
             currentDraft: currentDraft, // STRICTLY DRAFT TEXT — NEVER EMAIL BODY!
             instruction: 'apply_edit',
             spokenInstruction: editInstruction,
-            routedRole: email.routed_role,
+            routedRoles: email.routed_roles,
             emailContext: {
               from_name: email.from_name,
               from_address: email.from_address,
               subject: email.subject,
-              category: email.category,
-              routed_role: email.routed_role,
+              theme: email.theme,
+              routed_roles: email.routed_roles,
             },
             token,
             emailId: email.id,
@@ -712,43 +759,48 @@ export function VoiceEmailView({
   })
 
   return (
-    <div className="min-h-screen bg-[#f5f1e8] text-[#1c1a17] flex flex-col items-center justify-between p-4 sm:p-6 font-sans">
-      {/* Top Header Card */}
-      <header className="w-full max-w-md bg-white rounded-2xl border border-[#e8e2d4] p-4 shadow-sm space-y-2">
-        <div className="flex items-center justify-between gap-2 border-b border-[#e8e2d4] pb-2.5">
-          <div className="flex items-center gap-2">
-            {isUrgent && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700 border border-red-200">
-                <ShieldAlert className="w-3 h-3" />
-                URGENT
-              </span>
-            )}
-            <CategoryBadge category={email.category} />
+    <div className="min-h-screen bg-[var(--foreman-cream)] text-[var(--foreman-text-primary)] flex flex-col items-center p-4 sm:p-6 gap-5 font-sans">
+      {/* Tier 1 — Context card: recessive reference info, sits behind the interaction area */}
+      <header className="w-full max-w-md bg-[var(--foreman-cream-dim)]/40 rounded-2xl border border-[var(--foreman-cream-dim)] p-4 space-y-2">
+        <div className="flex items-center justify-between gap-2 border-b border-[var(--foreman-cream-dim)] pb-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <ThemeBadge theme={email.theme} />
+            <UrgencyBadge urgency={email.urgency} />
             <StatusBadge status={isApproved ? 'approved' : draft?.status || email.status} />
           </div>
 
-          <div className="flex items-center gap-1 text-[11px] font-medium text-[#6b6559] bg-[#f5f1e8] px-2 py-0.5 rounded border border-[#e8e2d4]">
-            <User className="w-3 h-3" />
-            <span className="capitalize">{email.routed_role ? email.routed_role.replace(/_/g, ' ') : 'Admin'}</span>
+          <div className="flex items-center gap-1 text-[11px] font-semibold text-[var(--foreman-text-primary)] bg-white px-2.5 py-0.5 rounded-full border border-[var(--foreman-cream-dim)] shrink-0">
+            <User className="w-3 h-3 text-[var(--foreman-text-secondary)]" />
+            <span className="capitalize">
+              {email.routed_roles && email.routed_roles.length > 0
+                ? email.routed_roles.map((r) => r.replace(/_/g, ' ')).join(', ')
+                : 'Admin'}
+            </span>
           </div>
         </div>
 
         <div>
-          <h1 className="text-base font-bold text-[#1c1a17] leading-snug line-clamp-2">
+          <h1 className="text-base font-bold text-[var(--foreman-text-primary)] leading-snug line-clamp-2">
             {email.subject || '(No Subject)'}
           </h1>
-          <p className="text-xs text-[#6b6559] mt-0.5 truncate">
-            From: <strong className="text-[#1c1a17]">{email.from_name || 'Sender'}</strong> &lt;{email.from_address}&gt;
+          <p className="text-xs text-[var(--foreman-text-secondary)] mt-0.5 truncate">
+            From: <strong className="text-[var(--foreman-text-primary)]">{email.from_name || 'Sender'}</strong> &lt;{email.from_address}&gt;
           </p>
         </div>
       </header>
 
       {/* Center Push-To-Talk Audio Experience */}
-      <main className="w-full max-w-md my-auto py-6 flex flex-col items-center justify-center space-y-6 text-center">
-        {/* Status / Feedback Banner */}
-        {feedback && (
+      <main className="w-full max-w-md flex-1 flex flex-col items-center justify-center gap-6 text-center py-1">
+        {/* Tier 2 — Status/activity area: the "live, happening now" zone. Given more
+            visual presence (shadow) than the recessed Tier 1 context card above it.
+            The leading glyph becomes the ActivityEqualizer while audio is actually
+            playing or being captured, and falls back to a static status icon otherwise. */}
+        {/* Suppressed while autoplayBlocked or micPermissionDenied: both get their
+            own dedicated, more actionable banner elsewhere on the page — showing
+            this generic one too just duplicated the same message twice. */}
+        {feedback && !autoplayBlocked && !micPermissionDenied && (
           <div
-            className={`w-full p-3.5 rounded-xl text-xs flex items-center justify-center gap-2 text-center transition-all ${
+            className={`w-full p-3.5 rounded-xl text-xs flex items-center justify-center gap-2 text-center shadow-sm transition-all ${
               feedback.type === 'success'
                 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                 : feedback.type === 'error'
@@ -758,7 +810,9 @@ export function VoiceEmailView({
                 : 'bg-stone-100 text-stone-800 border border-stone-200'
             }`}
           >
-            {feedback.type === 'success' ? (
+            {uiState === 'speaking' || uiState === 'listening' ? (
+              <ActivityEqualizer mode={uiState} />
+            ) : feedback.type === 'success' ? (
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             ) : feedback.type === 'error' ? (
               <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
@@ -775,9 +829,9 @@ export function VoiceEmailView({
             type="button"
             onClick={() => {
               setAutoplayBlocked(false)
-              playTTS(buildIntroText())
+              playTTS(buildIntroText(), handleIntroPlaybackEnd)
             }}
-            className="w-full py-3.5 px-4 bg-[#1c1a17] hover:bg-[#2a2723] text-[#f5f1e8] rounded-xl shadow-md flex items-center justify-center gap-2.5 text-xs font-semibold animate-pulse cursor-pointer border border-[#e8e2d4]"
+            className="w-full py-3.5 px-4 bg-[var(--foreman-charcoal)] hover:bg-[var(--foreman-charcoal-light)] text-[var(--foreman-cream)] rounded-xl shadow-md flex items-center justify-center gap-2.5 text-xs font-semibold animate-pulse cursor-pointer border border-[var(--foreman-cream-dim)]"
           >
             <Volume2 className="w-4 h-4 text-amber-400 shrink-0" />
             <span>🔊 Tap here to listen to email</span>
@@ -818,9 +872,17 @@ export function VoiceEmailView({
           <div className="flex flex-col items-center space-y-5">
             {/* Giant Push-to-Talk Button */}
             <div className="relative flex items-center justify-center">
-              {/* Pulsing ring during listening */}
+              {/* Idle: slow ambient "ready and waiting" breathing glow */}
+              {uiState === 'idle' && !showMicBusy && (
+                <div className="absolute w-40 h-40 rounded-full bg-[var(--foreman-charcoal)]/10 animate-pulse" />
+              )}
+              {/* Listening: expanding capture ring in the dedicated listening accent (not urgency-red, not speaking-amber) */}
               {uiState === 'listening' && (
-                <div className="absolute w-44 h-44 rounded-full bg-red-500/20 animate-ping" />
+                <div className="absolute w-44 h-44 rounded-full bg-[var(--voice-listening-accent)]/25 animate-ping" />
+              )}
+              {/* Processing / busy: neutral ring so "still working" is visible beyond the small spinner icon */}
+              {showMicBusy && (
+                <div className="absolute w-40 h-40 rounded-full bg-stone-400/20 animate-pulse" />
               )}
               {uiState === 'speaking' && (
                 <div className="absolute w-44 h-44 rounded-full bg-amber-500/20 animate-pulse" />
@@ -834,18 +896,18 @@ export function VoiceEmailView({
                 onTouchEnd={stopRecording}
                 onContextMenu={(e) => e.preventDefault()}
                 disabled={isPending || uiState === 'processing'}
-                className={`relative w-36 h-36 rounded-full flex flex-col items-center justify-center shadow-lg transition-all transform active:scale-95 select-none cursor-pointer focus:outline-none ${
+                className={`relative w-36 h-36 rounded-full flex flex-col items-center justify-center shadow-lg transition-all transform active:scale-95 select-none focus:outline-none ${
                   uiState === 'listening'
-                    ? 'bg-red-600 text-white ring-8 ring-red-200'
-                    : uiState === 'processing'
-                    ? 'bg-stone-400 text-white cursor-wait'
+                    ? 'bg-[var(--foreman-charcoal)] text-[var(--foreman-cream)] ring-8 ring-[var(--voice-listening-accent)]/50 cursor-pointer'
+                    : showMicBusy
+                    ? 'bg-stone-400 text-white ring-8 ring-stone-200 cursor-wait'
                     : uiState === 'speaking'
-                    ? 'bg-amber-600 text-white ring-8 ring-amber-200'
-                    : 'bg-[#1c1a17] text-[#f5f1e8] hover:bg-[#2a2723] ring-4 ring-[#e8e2d4]'
+                    ? 'bg-amber-600 text-white ring-8 ring-amber-200 cursor-pointer'
+                    : 'bg-[var(--foreman-charcoal)] text-[var(--foreman-cream)] hover:bg-[var(--foreman-charcoal-light)] ring-4 ring-[var(--foreman-cream-dim)] cursor-pointer'
                 }`}
                 title="Hold to Speak"
               >
-                {uiState === 'processing' ? (
+                {showMicBusy ? (
                   <Loader2 className="w-10 h-10 animate-spin" />
                 ) : uiState === 'speaking' ? (
                   <Volume2 className="w-10 h-10 animate-bounce" />
@@ -856,7 +918,7 @@ export function VoiceEmailView({
                 <span className="text-xs font-bold uppercase tracking-wider mt-2">
                   {uiState === 'listening'
                     ? 'Listening...'
-                    : uiState === 'processing'
+                    : showMicBusy
                     ? 'Thinking...'
                     : uiState === 'speaking'
                     ? 'Playing...'
@@ -877,6 +939,23 @@ export function VoiceEmailView({
               </button>
             )}
 
+            {/* Mic permission denied — actionable recovery path (UX spec §5): a real
+                button into text mode, not just prose telling the user to scroll for it. */}
+            {micPermissionDenied && (
+              <div className="w-full p-3.5 rounded-xl text-xs text-center bg-red-50 text-red-800 border border-red-200 shadow-sm space-y-2">
+                <p className="font-semibold">Microphone access is blocked</p>
+                <p className="leading-relaxed">Enable mic permissions in your browser settings, or continue without voice.</p>
+                <button
+                  type="button"
+                  onClick={() => setShowTextFallback(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-red-200 text-red-800 font-semibold hover:bg-red-100 cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Switch to text mode</span>
+                </button>
+              </div>
+            )}
+
             {/* Spoken Transcript Preview */}
             {lastTranscript && (
               <div className="bg-white px-4 py-2 rounded-xl border border-[#e8e2d4] text-xs text-[#6b6559] max-w-xs shadow-sm">
@@ -884,23 +963,131 @@ export function VoiceEmailView({
               </div>
             )}
 
-            {/* Quick Command Guide Pills */}
-            <div className="space-y-1.5 pt-2">
-              <span className="text-[11px] uppercase tracking-wider font-semibold text-[#6b6559]">
-                Voice Commands (Hold &amp; Speak)
+            {/* Example spoken phrases — reference only, not tappable controls */}
+            <div className="space-y-2 pt-2">
+              <span className="text-[11px] uppercase tracking-wider font-semibold text-[var(--foreman-text-secondary)]">
+                Try saying
               </span>
-              <div className="flex flex-wrap justify-center gap-1.5 max-w-sm">
-                {['"read the draft"', '"make it more formal"', '"make it shorter"', '"make it more technical"', '"discard"'].map(
+              <div className="flex flex-wrap justify-center gap-2 max-w-sm">
+                {['read the draft', 'make it more formal', 'make it shorter', 'make it more technical', 'discard'].map(
                   (cmd) => (
                     <span
                       key={cmd}
-                      className="text-[10px] font-mono bg-white/80 px-2 py-0.5 rounded border border-[#e8e2d4] text-[#1c1a17]"
+                      className="text-[11px] italic bg-[var(--foreman-cream-dim)]/50 px-2.5 py-1 rounded-full text-[var(--foreman-text-primary)]"
                     >
+                      <span className="not-italic text-[var(--foreman-text-secondary)]/60">&ldquo;</span>
                       {cmd}
+                      <span className="not-italic text-[var(--foreman-text-secondary)]/60">&rdquo;</span>
                     </span>
                   )
                 )}
               </div>
+            </div>
+
+            {/* Verification tool, reachable right at the send decision — resolves the
+                UX spec §6 framing question. PRODUCT DECISION, flagging for client
+                confirmation: this reframes "Show Text Instead" from an accessibility-
+                fallback control into a pre-send verification step, per the spec's
+                recommendation. Deliberately lower visual weight than Approve & Send
+                (plain text row, no card chrome) per UI spec §5, but positioned
+                immediately above it rather than in a distant footer, since that's
+                the moment a user is most likely to want to check the actual text. */}
+            <div className="w-full max-w-sm pt-1">
+              <button
+                type="button"
+                onClick={() => setShowTextFallback(!showTextFallback)}
+                className="w-full py-2 px-3 text-[11px] font-medium text-[var(--foreman-text-secondary)] hover:text-[var(--foreman-text-primary)] flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>{showTextFallback ? 'Hide text preview' : 'Preview text before sending'}</span>
+                {showTextFallback ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+
+              {showTextFallback && (
+                <div className="bg-white rounded-2xl border border-[var(--foreman-cream-dim)] p-4 shadow-sm space-y-4 transition-all mt-1">
+                  {/* Original Email Body */}
+                  <div>
+                    <span className="text-[11px] uppercase tracking-wider font-bold text-[#6b6559] block mb-1">
+                      Original Message Body
+                    </span>
+                    <div className="text-xs text-[#1c1a17] bg-[#f5f1e8] p-3 rounded-lg border border-[#e8e2d4] leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap">
+                      {email.body_text || '(No text body)'}
+                    </div>
+                  </div>
+
+                  {/* Editable Draft Text */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] uppercase tracking-wider font-bold text-[#6b6559]">
+                        Draft Reply
+                      </span>
+                      {!isLocked && draft?.ai_generated_text && draftText !== draft.ai_generated_text && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (draft.ai_generated_text) {
+                              setDraftText(draft.ai_generated_text)
+                              setWasDiscarded(false)
+                            }
+                          }}
+                          className="text-[11px] text-[#6b6559] hover:text-[#1c1a17] flex items-center gap-1 cursor-pointer"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          Reset
+                        </button>
+                      )}
+                    </div>
+
+                    <textarea
+                      rows={4}
+                      value={draftText}
+                      onChange={(e) => !isLocked && setDraftText(e.target.value)}
+                      readOnly={isLocked}
+                      placeholder="Type or dictate reply here..."
+                      className={`w-full p-2.5 text-xs border rounded-lg focus:outline-none font-sans ${
+                        isLocked
+                          ? 'bg-[#f5f1e8] border-[#e8e2d4] text-[#6b6559]'
+                          : 'bg-white border-[#e8e2d4] text-[#1c1a17] focus:ring-1 focus:ring-[#1c1a17]'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Fallback Action Buttons */}
+                  {!isLocked && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleApproveAndSend}
+                        disabled={isPending || !draftText.trim()}
+                        className="flex-1 py-2 px-3 bg-[#1c1a17] hover:bg-[#2a2723] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-emerald-400" />}
+                        <span>Approve &amp; Send</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => executeVoiceAction({ action: 'dictation', dictationText: draftText, rawText: draftText, normalizedText: '' })}
+                        disabled={isPending || !draftText.trim()}
+                        className="py-2 px-3 bg-white hover:bg-[#f5f1e8] text-[#1c1a17] border border-[#e8e2d4] text-xs font-medium rounded-lg flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        <Save className="w-3.5 h-3.5 text-[#6b6559]" />
+                        <span>Save</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => executeVoiceAction({ action: 'discard', rawText: '', normalizedText: '' })}
+                        disabled={isPending}
+                        className="py-2 px-3 bg-white hover:bg-red-50 text-red-700 border border-red-200 text-xs font-medium rounded-lg flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Discard</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Prominent Approve & Send Button (Strict Safety Rule: Button click required) */}
@@ -914,121 +1101,14 @@ export function VoiceEmailView({
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 text-emerald-400" />}
                 <span>Approve &amp; Send Reply</span>
               </button>
-              <p className="text-[10px] text-[#6b6559] mt-1.5 text-center">
-                🔒 Button click required to send (voice sending disabled for safety)
+              <p className="text-[10px] text-[var(--foreman-text-secondary)] mt-2.5 flex items-center justify-center gap-1">
+                <Lock className="w-3 h-3 shrink-0" />
+                <span>Button click required to send — voice sending disabled for safety</span>
               </p>
             </div>
           </div>
         )}
       </main>
-
-      {/* Fallback Text Toggle & Drawer */}
-      <footer className="w-full max-w-md space-y-3">
-        {micPermissionDenied && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 text-center">
-            <p className="font-semibold">Microphone Permission Blocked</p>
-            <p className="mt-0.5">Please enable mic access in your browser settings or use the text interface below.</p>
-          </div>
-        )}
-
-        {/* Toggle Button */}
-        <button
-          type="button"
-          onClick={() => setShowTextFallback(!showTextFallback)}
-          className="w-full py-2.5 px-4 bg-white hover:bg-[#f5f1e8] text-xs font-semibold text-[#1c1a17] rounded-xl border border-[#e8e2d4] shadow-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
-        >
-          <FileText className="w-4 h-4 text-[#6b6559]" />
-          <span>{showTextFallback ? 'Hide Text Fallback' : 'Show Text Instead'}</span>
-          {showTextFallback ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </button>
-
-        {/* Fallback Drawer */}
-        {showTextFallback && (
-          <div className="bg-white rounded-2xl border border-[#e8e2d4] p-4 shadow-sm space-y-4 transition-all">
-            {/* Original Email Body */}
-            <div>
-              <span className="text-[11px] uppercase tracking-wider font-bold text-[#6b6559] block mb-1">
-                Original Message Body
-              </span>
-              <div className="text-xs text-[#1c1a17] bg-[#f5f1e8] p-3 rounded-lg border border-[#e8e2d4] leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap">
-                {email.body_text || '(No text body)'}
-              </div>
-            </div>
-
-            {/* Editable Draft Text */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] uppercase tracking-wider font-bold text-[#6b6559]">
-                  Draft Reply
-                </span>
-                {!isLocked && draft?.ai_generated_text && draftText !== draft.ai_generated_text && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (draft.ai_generated_text) {
-                        setDraftText(draft.ai_generated_text)
-                        setWasDiscarded(false)
-                      }
-                    }}
-                    className="text-[11px] text-[#6b6559] hover:text-[#1c1a17] flex items-center gap-1 cursor-pointer"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    Reset
-                  </button>
-                )}
-              </div>
-
-              <textarea
-                rows={4}
-                value={draftText}
-                onChange={(e) => !isLocked && setDraftText(e.target.value)}
-                readOnly={isLocked}
-                placeholder="Type or dictate reply here..."
-                className={`w-full p-2.5 text-xs border rounded-lg focus:outline-none font-sans ${
-                  isLocked
-                    ? 'bg-[#f5f1e8] border-[#e8e2d4] text-[#6b6559]'
-                    : 'bg-white border-[#e8e2d4] text-[#1c1a17] focus:ring-1 focus:ring-[#1c1a17]'
-                }`}
-              />
-            </div>
-
-            {/* Fallback Action Buttons */}
-            {!isLocked && (
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handleApproveAndSend}
-                  disabled={isPending || !draftText.trim()}
-                  className="flex-1 py-2 px-3 bg-[#1c1a17] hover:bg-[#2a2723] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-emerald-400" />}
-                  <span>Approve &amp; Send</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => executeVoiceAction({ action: 'dictation', dictationText: draftText, rawText: draftText, normalizedText: '' })}
-                  disabled={isPending || !draftText.trim()}
-                  className="py-2 px-3 bg-white hover:bg-[#f5f1e8] text-[#1c1a17] border border-[#e8e2d4] text-xs font-medium rounded-lg flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                >
-                  <Save className="w-3.5 h-3.5 text-[#6b6559]" />
-                  <span>Save</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => executeVoiceAction({ action: 'discard', rawText: '', normalizedText: '' })}
-                  disabled={isPending}
-                  className="py-2 px-3 bg-white hover:bg-red-50 text-red-700 border border-red-200 text-xs font-medium rounded-lg flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Discard</span>
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </footer>
     </div>
   )
 }

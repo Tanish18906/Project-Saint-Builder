@@ -4,7 +4,8 @@ import React, { useState, useTransition, useEffect } from 'react'
 import DOMPurify from 'dompurify'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { CategoryBadge } from '@/components/CategoryBadge'
+import { ThemeBadge } from '@/components/ThemeBadge'
+import { UrgencyBadge } from '@/components/UrgencyBadge'
 import { StatusBadge } from '@/components/StatusBadge'
 import {
   saveDraftAction,
@@ -43,8 +44,9 @@ export interface EmailDetailProps {
     body_text: string | null
     body_html: string | null
     received_at: string
-    category: string | null
-    routed_role: string | null
+    theme: string | null
+    urgency: string | null
+    routed_roles: string[] | null
     status: string
     created_at: string | null
     accounts?: {
@@ -66,11 +68,23 @@ export interface EmailDetailProps {
     updated_at: string | null
   } | null
   classificationAudit?: {
-    category?: string
-    routed_role?: string
+    theme?: string
+    urgency?: string
+    routed_roles?: string[]
     confidence?: number
     summary?: string
   } | null
+}
+
+function formatRoles(roles: string[] | null | undefined): string {
+  if (!roles || roles.length === 0) return 'Unassigned'
+  return roles.map((r) => r.replace(/_/g, ' ')).join(', ')
+}
+
+// New classify prompt stores confidence as a 0.0-1.0 float; the deprecated shape
+// stored it as an integer 0-100 — historical audit_log rows may still have either.
+function confidenceToPercent(confidence: number): number {
+  return confidence <= 1 ? Math.round(confidence * 100) : Math.round(confidence)
 }
 
 export function EmailDetailView({ email, draft: initialDraft, classificationAudit }: EmailDetailProps) {
@@ -136,7 +150,7 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
     }
   }, [email.id])
 
-  const isUrgent = (emailRecord.category || '').toLowerCase() === 'urgent'
+  const isUrgent = (emailRecord.urgency || '').toLowerCase() === 'urgent'
   const isSent = draft?.status === 'sent' || emailRecord.status === 'sent'
   const isApproved = draft?.status === 'approved' || emailRecord.status === 'approved'
   const isLocked = isApproved || isSent
@@ -318,7 +332,8 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
               Urgent priority
             </span>
           )}
-          <CategoryBadge category={emailRecord.category} />
+          <ThemeBadge theme={emailRecord.theme} />
+          <UrgencyBadge urgency={emailRecord.urgency} />
           <StatusBadge status={isApproved ? 'approved' : emailRecord.status} />
           {emailRecord.accounts && (
             <span className="text-xs px-2.5 py-0.5 rounded bg-[#f5f1e8] text-[#6b6559] border border-[#e8e2d4] flex items-center gap-1 font-mono">
@@ -367,11 +382,11 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
 
                 <div>
                   <span className="text-[#6b6559] block text-[11px] font-medium">
-                    Routed role
+                    Routed roles
                   </span>
                   <p className="font-semibold text-[#1c1a17] mt-0.5 capitalize flex items-center gap-1">
                     <User className="w-3.5 h-3.5 text-[#6b6559]" />
-                    {email.routed_role ? email.routed_role.replace(/_/g, ' ') : 'Unassigned'}
+                    {formatRoles(email.routed_roles)}
                   </p>
                 </div>
 
@@ -422,7 +437,7 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
               </div>
               {classificationAudit?.confidence !== undefined && (
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  {classificationAudit.confidence}% Confidence
+                  {confidenceToPercent(classificationAudit.confidence)}% Confidence
                 </span>
               )}
             </div>
@@ -439,15 +454,25 @@ export function EmailDetailView({ email, draft: initialDraft, classificationAudi
 
             <div className="grid grid-cols-2 gap-2 text-xs pt-1">
               <div>
-                <span className="text-[#6b6559] text-[11px] block">Assigned role</span>
+                <span className="text-[#6b6559] text-[11px] block">Assigned role(s)</span>
                 <span className="font-semibold text-[#1c1a17] capitalize">
-                  {classificationAudit?.routed_role || email.routed_role || 'General'}
+                  {formatRoles(
+                    classificationAudit?.routed_roles && classificationAudit.routed_roles.length > 0
+                      ? classificationAudit.routed_roles
+                      : email.routed_roles
+                  )}
                 </span>
               </div>
               <div>
-                <span className="text-[#6b6559] text-[11px] block">Triage category</span>
+                <span className="text-[#6b6559] text-[11px] block">Theme</span>
                 <span className="font-semibold text-[#1c1a17] capitalize">
-                  {(classificationAudit?.category || email.category || 'other').replace(/_/g, ' ')}
+                  {(classificationAudit?.theme || email.theme || 'unclassified').replace(/_/g, ' ')}
+                </span>
+              </div>
+              <div>
+                <span className="text-[#6b6559] text-[11px] block">Urgency</span>
+                <span className="font-semibold text-[#1c1a17] capitalize">
+                  {(classificationAudit?.urgency || email.urgency || '—').replace(/_/g, ' ')}
                 </span>
               </div>
             </div>

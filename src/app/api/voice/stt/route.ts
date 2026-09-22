@@ -11,12 +11,17 @@ export async function POST(request: NextRequest) {
 
     const activeToken = token || authHeader
 
-    // Verify token
-    if (activeToken) {
-      const verification = verifyVoiceToken(activeToken, emailId || undefined)
-      if (!verification.valid) {
-        return NextResponse.json({ error: 'Unauthorized: Invalid or expired voice token' }, { status: 401 })
-      }
+    // Verify token - strictly enforce valid signed token
+    if (!activeToken) {
+      return NextResponse.json({ error: 'Unauthorized: Missing voice token' }, { status: 401 })
+    }
+
+    const verification = verifyVoiceToken(activeToken, emailId || undefined)
+    if (!verification.valid) {
+      return NextResponse.json(
+        { error: `Unauthorized: ${verification.error || 'Invalid or expired voice token'}` },
+        { status: 401 }
+      )
     }
 
     if (!audioFile) {

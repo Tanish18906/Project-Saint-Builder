@@ -9,12 +9,17 @@ export async function POST(request: NextRequest) {
 
     const activeToken = token || authHeader
 
-    // Verify token
-    if (activeToken) {
-      const verification = verifyVoiceToken(activeToken, emailId)
-      if (!verification.valid) {
-        return NextResponse.json({ error: 'Unauthorized: Invalid or expired voice token' }, { status: 401 })
-      }
+    // Verify token - strictly enforce valid signed token
+    if (!activeToken) {
+      return NextResponse.json({ error: 'Unauthorized: Missing voice token' }, { status: 401 })
+    }
+
+    const verification = verifyVoiceToken(activeToken, emailId)
+    if (!verification.valid) {
+      return NextResponse.json(
+        { error: `Unauthorized: ${verification.error || 'Invalid or expired voice token'}` },
+        { status: 401 }
+      )
     }
 
     if (!text || typeof text !== 'string' || !text.trim()) {
@@ -29,25 +34,20 @@ export async function POST(request: NextRequest) {
       try {
         let openAiRes = await fetch('https://api.openai.com/v1/audio/speech', {
           method: 'POST',
-          // Measured against the real API: synthesizing a full email body (~450 chars)
-          // routinely takes 4.7-6.7s, well past a 4.5s timeout. Emails/drafts can run
-          // longer still, so this needs real headroom rather than a value tuned for
-          // short confirmation phrases.
           signal: AbortSignal.timeout(12000),
           headers: {
             Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini-tts',
+            model: 'tts-1',
             input: cleanText,
             voice: 'alloy',
             response_format: 'mp3',
-            instructions: 'Read clearly and at a measured, professional pace for a UK building company operations team.',
           }),
         })
 
-        // Fallback retry with base tts-1 if gpt-4o-mini-tts is not yet provisioned on this key
+        // Fallback retry with tts-1-hd if tts-1 fails
         if (!openAiRes.ok) {
           openAiRes = await fetch('https://api.openai.com/v1/audio/speech', {
             method: 'POST',
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'tts-1',
+              model: 'tts-1-hd',
               input: cleanText,
               voice: 'alloy',
               response_format: 'mp3',

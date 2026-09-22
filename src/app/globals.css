@@ -9,6 +9,11 @@
   --foreman-text-primary: #1c1a17;
   --foreman-text-secondary: #6b6559;
 
+  /* Voice mic button — listening-state accent. Deliberately not urgency-red (that hue is
+     reserved for hazard signaling) and not the amber already used for the speaking state.
+     Muted/desaturated per the "restrained color use" rule for any new accent. */
+  --voice-listening-accent: #4d7480;
+
   /* Urgency — the only place color carries real signal, like a hazard marker on site */
   --urgency-urgent: #b91c1c;
   --urgency-urgent-bg: #fef2f2;
@@ -30,6 +35,20 @@
   --status-approved-border: #bbf7d0;
   --status-pending-text: var(--foreman-text-secondary);
   --status-discarded-text: var(--foreman-text-secondary);
+}
+
+/* Voice page Tier 2 activity indicator — one shared bar-equalizer animation,
+   recolored per mode (speaking = amber, listening = --voice-listening-accent)
+   rather than two separate components, per the UX spec's "one component, two
+   visual modes" requirement. */
+@keyframes voice-eq {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
 
 body {

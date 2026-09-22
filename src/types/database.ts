@@ -144,6 +144,7 @@ export type Database = {
           account_id: string
           body_html: string | null
           body_text: string | null
+          /** @deprecated Superseded by `theme` as of the theme-routing migration. Historical rows only — do not read for new logic. */
           category: string | null
           created_at: string | null
           from_address: string
@@ -151,15 +152,20 @@ export type Database = {
           id: string
           message_id: string
           received_at: string
+          /** @deprecated Superseded by `routed_roles` (array) as of the theme-routing migration. Historical rows only — do not read for new logic. */
           routed_role: string | null
+          routed_roles: string[] | null
           status: string
           subject: string | null
+          theme: string | null
           thread_id: string | null
+          urgency: string | null
         }
         Insert: {
           account_id: string
           body_html?: string | null
           body_text?: string | null
+          /** @deprecated Superseded by `theme` as of the theme-routing migration. Historical rows only — do not write. */
           category?: string | null
           created_at?: string | null
           from_address: string
@@ -167,15 +173,20 @@ export type Database = {
           id?: string
           message_id: string
           received_at: string
+          /** @deprecated Superseded by `routed_roles` (array) as of the theme-routing migration. Historical rows only — do not write. */
           routed_role?: string | null
+          routed_roles?: string[] | null
           status?: string
           subject?: string | null
+          theme?: string | null
           thread_id?: string | null
+          urgency?: string | null
         }
         Update: {
           account_id?: string
           body_html?: string | null
           body_text?: string | null
+          /** @deprecated Superseded by `theme` as of the theme-routing migration. Historical rows only — do not write. */
           category?: string | null
           created_at?: string | null
           from_address?: string
@@ -183,10 +194,14 @@ export type Database = {
           id?: string
           message_id?: string
           received_at?: string
+          /** @deprecated Superseded by `routed_roles` (array) as of the theme-routing migration. Historical rows only — do not write. */
           routed_role?: string | null
+          routed_roles?: string[] | null
           status?: string
           subject?: string | null
+          theme?: string | null
           thread_id?: string | null
+          urgency?: string | null
         }
         Relationships: [
           {

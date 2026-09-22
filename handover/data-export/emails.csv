@@ -1,0 +1,96 @@
+id,account_id,message_id,thread_id,from_address,from_name,subject,body_text,body_html,received_at,category,routed_role,status,created_at,theme,urgency,routed_roles
+08df1403-8e04-45d8-b927-27a752796428,1e9dba44-7c3c-4b7b-a324-69f558d489f6,test-nph-finance-001,,nphadfinance.nph@nph.org.uk,"NPH AD Finance Team","NPH AD FINANCE - Overdue Invoice - PAYMENT CERT required","Dear Allsaints,
+
+Our records show an overdue invoice against NPH contract ref 88213. We require a signed PAYMENT CERT from your office before we can release funds for the works already completed.
+
+Please can you send the completed DISREP Payment Cert paperwork to this address so we can process payment. This is a finance/accounts matter only, not a request about the physical works.
+
+Regards,
+NPH AD Finance",,"2026-08-26 10:00:00+00",,,classified,"2026-08-26 12:36:11.207102+00",finance,priority,{director}
+19e673c6-b765-407f-afe4-de7fb64b2ebf,1e9dba44-7c3c-4b7b-a324-69f558d489f6,test-brewers-supplier-004,,accounts@brewers.co.uk,"Brewers Trade Accounts","Your Brewers trade account — credit terms review","Hi,
+
+As part of our annual review of your ongoing trade account with us, we'd like to discuss your current credit limit and payment terms across all sites, not any single order.
+
+Can someone from your office give us a call to go through the account relationship and confirm your preferred terms going forward?
+
+Thanks,
+Brewers Trade Accounts",,"2026-08-26 10:15:00+00",,,classified,"2026-08-26 12:38:18.711513+00",suppliers,normal,"{director,senior_admin}"
+c50e7b2c-11ec-43bf-912d-afaa627a3cc5,1e9dba44-7c3c-4b7b-a324-69f558d489f6,test-certificates-006,,compliance@sparkelectrical.co.uk,"Spark Electrical Compliance","MINOR WORKS certificate — 22 Baker Street sign-off required","Hi,
+
+Please find attached the completed MINOR WORKS certificate for the ELECTRICAL works at 22 Baker Street. We need your sign-off on this before we can close out the job.
+
+Regards,
+Spark Electrical Compliance",,"2026-08-26 11:10:00+00",,,classified,"2026-08-26 12:44:23.193697+00",certificates,priority,"{senior_admin,director}"
+e95ca137-e5a0-4e3e-9a00-c1b4c3c0d461,106596c5-de6f-4130-bf25-1c82fc5a9442,r3-retest-3,,office@allsaintsbuilders.com,"Site Office","Fwd: Query re payment","Forwarding this below — can you take a look and respond?
+
+---------- Forwarded message ---------
+From: J. Pearson
+Subject: Query re payment
+
+Hello, I wanted to check on the status of a payment that was due to be processed for our recent works — it hasn't shown up yet and I wanted to confirm nothing had gone wrong on your end.",,"2026-08-26 12:00:00+00",,,classified,"2026-08-26 16:41:34.075485+00",finance,normal,{director}
+4d12c75f-b9b9-4bb3-a02a-8f134ff17fb3,106596c5-de6f-4130-bf25-1c82fc5a9442,test-nph-jobupdate-002,,j.whitfield@northampton.gov.uk,"J. Whitfield, NPH","URGENT - NPH Job #4521 - DAMP AND MOULD Emergency - 12 Elm Street","Hi,
+
+This is an Emergency DISRP case under NPH job #4521 at 12 Elm Street — tenant has reported severe DAMP AND MOULD in the back bedroom (DM/A&A). This needs to be treated as an urgent disrepair with safety implications, same-day attendance required.
+
+Can you confirm your crew can attend today? This is about the physical works only — no finance or payment query here.
+
+Regards,
+J. Whitfield
+NPH",,"2026-08-26 10:05:00+00",,,classified,"2026-08-26 12:36:51.995149+00",nph_jobs,urgent,{senior_admin}
+24c38ce9-d034-4829-bfb6-d404c8b1a487,1e9dba44-7c3c-4b7b-a324-69f558d489f6,test-meetings-before-005,,sarah@rosewoodproperties.co.uk,"Sarah Rosewood","Meeting request — site walkthrough next week","Hi,
+
+Could we arrange a meeting for next Tuesday afternoon to walk through the completed works at 45 Mill Road and discuss the snagging list?
+
+Let me know a time that suits your team.
+
+Thanks,
+Sarah",,"2026-08-26 11:00:00+00",,,classified,"2026-08-26 12:42:41.916386+00",meetings_appointments,normal,"{senior_admin,director}"
+84367965-8b90-41fe-96a9-8f69f0ff5cd6,1e9dba44-7c3c-4b7b-a324-69f558d489f6,test-brewers-supplier-regression-007,,accounts@brewers.co.uk,"Brewers Trade Accounts","Your Brewers trade account — credit terms review","Hi,
+
+As part of our annual review of your ongoing trade account with us, we'd like to discuss your current credit limit and payment terms across all sites, not any single order.
+
+Can someone from your office give us a call to go through the account relationship and confirm your preferred terms going forward?
+
+Thanks,
+Brewers Trade Accounts",,"2026-08-26 11:15:00+00",,,classified,"2026-08-26 12:45:01.355741+00",suppliers,normal,"{director,senior_admin}"
+92479531-108f-4fd8-941b-394bf12d730b,1e9dba44-7c3c-4b7b-a324-69f558d489f6,r3-before-1,,d.whitcombe@nph.org.uk,"Dave Whitcombe","Statement query","Morning, just going through the latest statement and one of the figures doesn't look right — the balance shown for job 4482 is about £340 more than what we agreed. Can someone check this and get back to me?",,"2026-08-26 12:00:00+00",,,classified,"2026-08-26 16:43:07.286302+00",finance,normal,{director}
+70e75bf4-113d-4043-bace-df9c54bfad46,1e9dba44-7c3c-4b7b-a324-69f558d489f6,r3-before-1b,,j.marsh@marshprops.co.uk,"Jenny Marsh","Statement query","Morning, just going through the latest statement and one of the figures doesn't look right — the balance shown for job 4482 is about £340 more than what we agreed. Can someone check this and get back to me?",,"2026-08-26 12:00:00+00",,,classified,"2026-08-26 16:43:38.405525+00",accounts,normal,{director}
+bd927890-931f-46fb-982a-d232daa21169,1e9dba44-7c3c-4b7b-a324-69f558d489f6,r3-before-2,,karen.foster@fostersupplies.co.uk,"Karen Foster","Invoice #3391","Hi, we're disputing invoice #3391 — the amount charged doesn't match the quote we were given for the materials delivered last month. Could you look into this and confirm the correct figure?",,"2026-08-26 12:00:00+00",,,classified,"2026-08-26 16:44:07.280507+00",accounts,normal,{director}
+39c8a2f5-a125-4819-b2dd-51704012e7fd,106596c5-de6f-4130-bf25-1c82fc5a9442,r3-before-3,,office@allsaintsbuilders.com,"Site Office","Fwd: Query re payment","Forwarding this below — can you take a look and respond?
+
+---------- Forwarded message ---------
+From: J. Pearson
+Subject: Query re payment
+
+Hello, I wanted to check on the status of a payment that was due to be processed for our recent works — it hasn't shown up yet and I wanted to confirm nothing had gone wrong on your end.",,"2026-08-26 12:00:00+00",,,classified,"2026-08-26 16:44:33.4295+00",finance,priority,{director}
+1ff2e17a-2cc6-4edb-99bf-468026754317,1e9dba44-7c3c-4b7b-a324-69f558d489f6,test-brewers-order-003,,orders@brewers.co.uk,"Brewers Decorator Centres","Order Confirmation #BR-99213","Hi,
+
+This confirms your one-off order #BR-99213 for 20L masonry paint and sundries, ready for collection from our depot on Thursday.
+
+No account changes or ongoing terms involved — this is just the order confirmation for this single purchase.
+
+Thanks,
+Brewers Decorator Centres",,"2026-08-26 10:10:00+00",,,classified,"2026-08-26 12:37:31.252253+00",orders,normal,{senior_admin}
+957ef5c0-e362-4126-859a-e179f3a0090b,1e9dba44-7c3c-4b7b-a324-69f558d489f6,test-meetings-before-005,,sarah@rosewoodproperties.co.uk,"Sarah Rosewood","Meeting request — site walkthrough next week","Hi,
+
+Could we arrange a meeting for next Tuesday afternoon to walk through the completed works at 45 Mill Road and discuss the snagging list?
+
+Let me know a time that suits your team.
+
+Thanks,
+Sarah",,"2026-08-26 11:00:00+00",,,classified,"2026-08-26 12:43:46.12558+00",meetings_appointments,normal,"{senior_admin,director}"
+dbcfc0d7-30c1-459e-9bba-71fd4bbf8310,1e9dba44-7c3c-4b7b-a324-69f558d489f6,r3-retest-1,,d.whitcombe@nph.org.uk,"Dave Whitcombe","Statement query","Morning, just going through the latest statement and one of the figures doesn't look right — the balance shown for job 4482 is about £340 more than what we agreed. Can someone check this and get back to me?",,"2026-08-26 12:00:00+00",,,classified,"2026-08-26 16:40:25.721724+00",finance,normal,{director}
+2add9636-b6a9-47bb-a0b2-6249a002f934,1e9dba44-7c3c-4b7b-a324-69f558d489f6,r3-retest-2,,karen.foster@fostersupplies.co.uk,"Karen Foster","Invoice #3391","Hi, we're disputing invoice #3391 — the amount charged doesn't match the quote we were given for the materials delivered last month. Could you look into this and confirm the correct figure?",,"2026-08-26 12:00:00+00",,,classified,"2026-08-26 16:40:56.281176+00",invoices,normal,{director}
+d01023be-85bf-4b14-b166-5ece6afb8ddd,1e9dba44-7c3c-4b7b-a324-69f558d489f6,msg@id001,,mark.wilson@northamptonproperty.co.uk,"Mark Wilson","Need someone at 14 High Street today","Hi,  We've just had a call from the tenant at 14 High Street. They've got water coming through the ceiling in the back bedroom and it seems to be getting worse.  The lads are still there at the moment but they don't want to start taking anything apart without knowing what you want them to do.  Can someone give me a call as soon as possible please?  Thanks, Mark",,"2026-08-21 13:20:00+00",urgent,senior_admin,sent,"2026-08-23 12:49:15.675463+00",,,
+a66fb91d-7294-4339-ab65-10eba375c8b9,1e9dba44-7c3c-4b7b-a324-69f558d489f6,"msg@id 002",,james.carter@riversidedevelopments.co.uk,James,"Riverside – revised proposal","Hi,  I've had the revised proposal back from the client for Riverside.  They're looking to add around £18,000 worth of work to the original contract. The numbers look reasonable from what I can see, but I haven't agreed to anything yet.  Probably worth having a quick look before we go back to them. Let me know when you're free and I'll run through it with you.  Cheers, James",,"2026-08-21 13:20:00+00",contracts,director,classified,"2026-08-23 12:54:34.980613+00",,,
+b6169435-f055-4cb9-9cb9-0384be225f1d,1e9dba44-7c3c-4b7b-a324-69f558d489f6,"msg@id 002",,james.carter@riversidedevelopments.co.uk,James,"Riverside – revised proposal","Hi,
+
+We've just had a call from the tenant at 14 High Street. They've got water coming through the ceiling in the back bedroom and it seems to be getting worse.
+
+The lads are still there at the moment but they don't want to start taking anything apart without knowing what you want them to do.
+
+Can someone give me a call as soon as possible please?
+
+Thanks,
+Mark",,"2026-08-21 13:20:00+00",urgent,senior_admin,classified,"2026-08-23 12:58:12.568192+00",,,
+b4a91a1d-bfef-419e-b5d9-fe549efb9e2d,106596c5-de6f-4130-bf25-1c82fc5a9442,verify-whatsapp-url-fix-20260821-003@fake.local,,j.whitfield@northampton.gov.uk,"Verify WhatsApp URL Fix Retest","URGENT - NPH job 4522: retest after publishing voice_url fix","This is regarding NPH job 4522 at 14 Elm Street. Retesting the WhatsApp voice_url fix after publishing the workflow. Please treat this as a same-day test.",,"2026-08-21 13:20:00+00",nph_job_update,progressor,sent,"2026-08-22 12:40:56.104402+00",,,

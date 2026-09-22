@@ -5,16 +5,21 @@ export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('x-voice-token')
     const body = await request.json().catch(() => ({}))
-    const { emailContext, currentDraft, instruction, routedRole, token, emailId } = body
+    const { emailContext, currentDraft, instruction, routedRoles, token, emailId } = body
 
     const activeToken = token || authHeader
 
-    // Verify token
-    if (activeToken) {
-      const verification = verifyVoiceToken(activeToken, emailId)
-      if (!verification.valid) {
-        return NextResponse.json({ error: 'Unauthorized: Invalid or expired voice token' }, { status: 401 })
-      }
+    // Verify token - strictly enforce valid signed token
+    if (!activeToken) {
+      return NextResponse.json({ error: 'Unauthorized: Missing voice token' }, { status: 401 })
+    }
+
+    const verification = verifyVoiceToken(activeToken, emailId)
+    if (!verification.valid) {
+      return NextResponse.json(
+        { error: `Unauthorized: ${verification.error || 'Invalid or expired voice token'}` },
+        { status: 401 }
+      )
     }
 
     if (!currentDraft || typeof currentDraft !== 'string') {
@@ -32,8 +37,8 @@ export async function POST(request: NextRequest) {
       userMessage = `Original Email Context:
 Sender: ${emailContext?.from_name || 'Sender'} (${emailContext?.from_address || ''})
 Subject: ${emailContext?.subject || ''}
-Category: ${emailContext?.category || ''}
-Routed Role: ${routedRole || emailContext?.routed_role || 'general'}
+Theme: ${emailContext?.theme || ''}
+Routed Roles: ${(routedRoles || emailContext?.routed_roles || []).join(', ') || 'general'}
 
 Current Draft:
 ${currentDraft}
@@ -67,8 +72,8 @@ RULES:
       userMessage = `Original Email Context:
 Sender: ${emailContext?.from_name || 'Sender'} (${emailContext?.from_address || ''})
 Subject: ${emailContext?.subject || ''}
-Category: ${emailContext?.category || ''}
-Routed Role: ${routedRole || emailContext?.routed_role || 'general'}
+Theme: ${emailContext?.theme || ''}
+Routed Roles: ${(routedRoles || emailContext?.routed_roles || []).join(', ') || 'general'}
 
 Current Draft:
 ${currentDraft}
@@ -87,7 +92,7 @@ ${toneInstructionText}`
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-5.4-mini',
+            model: 'gpt-4o-mini',
             temperature: 0.4,
             messages: [
               { role: 'system', content: systemPrompt },
@@ -96,7 +101,7 @@ ${toneInstructionText}`
           }),
         })
 
-        // Fallback retry with gpt-4o-mini if gpt-5.4-mini model is not yet provisioned on this key
+        // Fallback retry with gpt-4o if gpt-4o-mini rate limits or errors
         if (!openAiRes.ok) {
           openAiRes = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -106,7 +111,7 @@ ${toneInstructionText}`
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'gpt-4o-mini',
+              model: 'gpt-4o',
               temperature: 0.4,
               messages: [
                 { role: 'system', content: systemPrompt },

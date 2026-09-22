@@ -18,6 +18,7 @@ yarn-error.log*
 bin/
 dist/
 build/
+*.zip
 
 # Editor & OS files
 .DS_Store
@@ -25,6 +26,7 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+*.local.json
 
 # Next.js build
 .next/

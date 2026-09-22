@@ -3,7 +3,8 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { CategoryBadge } from '@/components/CategoryBadge'
+import { ThemeBadge } from '@/components/ThemeBadge'
+import { UrgencyBadge } from '@/components/UrgencyBadge'
 import { StatusBadge } from '@/components/StatusBadge'
 import {
   Search,
@@ -29,8 +30,9 @@ export interface EmailItem {
   body_text: string | null
   body_html: string | null
   received_at: string
-  category: string | null
-  routed_role: string | null
+  theme: string | null
+  urgency: string | null
+  routed_roles: string[] | null
   status: string
   created_at: string | null
   accounts?: {
@@ -56,15 +58,24 @@ interface InboxViewProps {
   accounts: AccountItem[]
 }
 
-const CATEGORIES = [
-  { value: 'all', label: 'All Categories' },
+const THEMES = [
+  { value: 'all', label: 'All Themes' },
+  { value: 'accounts', label: 'Accounts' },
+  { value: 'orders', label: 'Orders' },
+  { value: 'finance', label: 'Finance' },
+  { value: 'suppliers', label: 'Suppliers' },
+  { value: 'promotions', label: 'Promotions' },
+  { value: 'nph_jobs', label: 'NPH Jobs' },
+  { value: 'meetings_appointments', label: 'Meetings / Appointments' },
+  { value: 'invoices', label: 'Invoices' },
+  { value: 'certificates', label: 'Certificates' },
+]
+
+const URGENCIES = [
+  { value: 'all', label: 'All Urgencies' },
   { value: 'urgent', label: 'Urgent' },
   { value: 'priority', label: 'Priority' },
-  { value: 'finance_accounts', label: 'Finance / Accounts' },
-  { value: 'contracts', label: 'Contracts' },
-  { value: 'nph_job_update', label: 'NPH Job Update' },
-  { value: 'read_later', label: 'Read Later' },
-  { value: 'other', label: 'Other' },
+  { value: 'normal', label: 'Normal' },
 ]
 
 const ROLES = [
@@ -113,7 +124,8 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
 
   const [selectedAccountId, setSelectedAccountId] = useState<string>('all')
   const [selectedRole, setSelectedRole] = useState<string>('all')
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [selectedTheme, setSelectedTheme] = useState<string>('all')
+  const [selectedUrgency, setSelectedUrgency] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
 
@@ -194,18 +206,26 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
         return false
       }
 
-      // Role filter
+      // Role filter — matches if the selected role appears anywhere in routed_roles
       if (selectedRole !== 'all') {
-        const role = (email.routed_role || '').toLowerCase()
-        if (role !== selectedRole.toLowerCase()) {
+        const roles = (email.routed_roles || []).map((r) => r.toLowerCase())
+        if (!roles.includes(selectedRole.toLowerCase())) {
           return false
         }
       }
 
-      // Category filter
-      if (selectedCategory !== 'all') {
-        const cat = (email.category || '').toLowerCase()
-        if (cat !== selectedCategory.toLowerCase()) {
+      // Theme filter
+      if (selectedTheme !== 'all') {
+        const theme = (email.theme || '').toLowerCase()
+        if (theme !== selectedTheme.toLowerCase()) {
+          return false
+        }
+      }
+
+      // Urgency filter
+      if (selectedUrgency !== 'all') {
+        const urgency = (email.urgency || '').toLowerCase()
+        if (urgency !== selectedUrgency.toLowerCase()) {
           return false
         }
       }
@@ -233,11 +253,11 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
 
       return true
     })
-  }, [emails, selectedAccountId, selectedRole, selectedCategory, selectedStatus, searchQuery])
+  }, [emails, selectedAccountId, selectedRole, selectedTheme, selectedUrgency, selectedStatus, searchQuery])
 
   // Count summaries
   const urgentCount = useMemo(() => {
-    return emails.filter((e) => (e.category || '').toLowerCase() === 'urgent').length
+    return emails.filter((e) => (e.urgency || '').toLowerCase() === 'urgent').length
   }, [emails])
 
   const draftedCount = useMemo(() => {
@@ -248,17 +268,19 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
     let count = 0
     if (selectedAccountId !== 'all') count++
     if (selectedRole !== 'all') count++
-    if (selectedCategory !== 'all') count++
+    if (selectedTheme !== 'all') count++
+    if (selectedUrgency !== 'all') count++
     if (selectedStatus !== 'all') count++
     return count
-  }, [selectedAccountId, selectedRole, selectedCategory, selectedStatus])
+  }, [selectedAccountId, selectedRole, selectedTheme, selectedUrgency, selectedStatus])
 
   const hasActiveFilters = activeFilterCount > 0 || searchQuery.trim().length > 0
 
   const resetFilters = () => {
     setSelectedAccountId('all')
     setSelectedRole('all')
-    setSelectedCategory('all')
+    setSelectedTheme('all')
+    setSelectedUrgency('all')
     setSelectedStatus('all')
     setSearchQuery('')
   }
@@ -416,19 +438,36 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
               ))}
             </select>
 
-            {/* Category Dropdown */}
+            {/* Theme Dropdown */}
             <div className="flex items-center gap-1 text-xs text-[#6b6559] ml-1">
               <Filter className="w-3.5 h-3.5 opacity-60" />
-              <span>Category:</span>
+              <span>Theme:</span>
             </div>
             <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              value={selectedTheme}
+              onChange={(e) => setSelectedTheme(e.target.value)}
               className="px-2 py-1 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] focus:outline-none focus:ring-1 focus:ring-[#1c1a17] cursor-pointer"
             >
-              {CATEGORIES.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
+              {THEMES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Urgency Dropdown */}
+            <div className="flex items-center gap-1 text-xs text-[#6b6559] ml-1">
+              <AlertTriangle className="w-3.5 h-3.5 opacity-60" />
+              <span>Urgency:</span>
+            </div>
+            <select
+              value={selectedUrgency}
+              onChange={(e) => setSelectedUrgency(e.target.value)}
+              className="px-2 py-1 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] focus:outline-none focus:ring-1 focus:ring-[#1c1a17] cursor-pointer"
+            >
+              {URGENCIES.map((u) => (
+                <option key={u.value} value={u.value}>
+                  {u.label}
                 </option>
               ))}
             </select>
@@ -524,19 +563,37 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
               </select>
             </div>
 
-            {/* Category Selector */}
+            {/* Theme Selector */}
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-[#1c1a17]">
-                Category
+                Theme
               </label>
               <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                value={selectedTheme}
+                onChange={(e) => setSelectedTheme(e.target.value)}
                 className="w-full p-2.5 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] min-h-[44px]"
               >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
+                {THEMES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Urgency Selector */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#1c1a17]">
+                Urgency
+              </label>
+              <select
+                value={selectedUrgency}
+                onChange={(e) => setSelectedUrgency(e.target.value)}
+                className="w-full p-2.5 text-xs border border-[#e8e2d4] rounded bg-white text-[#1c1a17] min-h-[44px]"
+              >
+                {URGENCIES.map((u) => (
+                  <option key={u.value} value={u.value}>
+                    {u.label}
                   </option>
                 ))}
               </select>
@@ -624,9 +681,9 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
       ) : (
         <div className="space-y-2">
           {filteredEmails.map((email) => {
-            const cat = (email.category || '').toLowerCase()
-            const isUrgent = cat === 'urgent'
-            const isPriority = cat === 'priority'
+            const urgency = (email.urgency || '').toLowerCase()
+            const isUrgent = urgency === 'urgent'
+            const isPriority = urgency === 'priority'
 
             return (
               <Link
@@ -666,11 +723,12 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <CategoryBadge category={email.category} />
-                    {email.routed_role && (
+                    <ThemeBadge theme={email.theme} />
+                    <UrgencyBadge urgency={email.urgency} />
+                    {email.routed_roles && email.routed_roles.length > 0 && (
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#f5f1e8] text-[#1c1a17] border border-[#e8e2d4] capitalize">
                         <User className="w-2.5 h-2.5 opacity-60" />
-                        {email.routed_role.replace(/_/g, ' ')}
+                        {email.routed_roles.map((r) => r.replace(/_/g, ' ')).join(', ')}
                       </span>
                     )}
                     <StatusBadge status={email.status} />
@@ -703,11 +761,12 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
 
                     {/* Badges & Relative Timestamp */}
                     <div className="flex items-center gap-2 shrink-0">
-                      <CategoryBadge category={email.category} />
-                      {email.routed_role && (
+                      <ThemeBadge theme={email.theme} />
+                      <UrgencyBadge urgency={email.urgency} />
+                      {email.routed_roles && email.routed_roles.length > 0 && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#f5f1e8] text-[#1c1a17] border border-[#e8e2d4] capitalize">
                           <User className="w-2.5 h-2.5 opacity-60" />
-                          {email.routed_role.replace(/_/g, ' ')}
+                          {email.routed_roles.map((r) => r.replace(/_/g, ' ')).join(', ')}
                         </span>
                       )}
                       <StatusBadge status={email.status} />

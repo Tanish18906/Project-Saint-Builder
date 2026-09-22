@@ -75,8 +75,9 @@ export default async function EmailDetailPage({ params }: EmailDetailPageProps) 
   const user = userData?.user
 
   let classificationAudit: {
-    category?: string
-    routed_role?: string
+    theme?: string
+    urgency?: string
+    routed_roles?: string[]
     confidence?: number
     summary?: string
   } | null = null
