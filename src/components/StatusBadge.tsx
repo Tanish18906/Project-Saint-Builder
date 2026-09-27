@@ -1,3 +1,4 @@
+// LEGACY PRESENTATION — replaced per DESIGN_SYSTEM.md §12; do not extend. New UI uses src/components/ui.
 import React from 'react'
 
 export type EmailStatus =
@@ -21,45 +22,45 @@ const STATUS_CONFIG: Record<
 > = {
   new: {
     label: 'New',
-    bg: 'bg-[#f5f1e8]',
-    text: 'text-[#6b6559]',
-    border: 'border-[#e8e2d4]',
+    bg: 'bg-surface',
+    text: 'text-text-secondary',
+    border: 'border-border-hairline',
   },
   classified: {
     label: 'Classified',
-    bg: 'bg-[#f5f1e8]',
-    text: 'text-[#6b6559]',
-    border: 'border-[#e8e2d4]',
+    bg: 'bg-surface',
+    text: 'text-text-secondary',
+    border: 'border-border-hairline',
   },
   drafted: {
     label: 'Drafted',
-    bg: 'bg-[#f5f1e8]',
-    text: 'text-[#6b6559]',
-    border: 'border-[#e8e2d4]',
+    bg: 'bg-surface',
+    text: 'text-text-secondary',
+    border: 'border-border-hairline',
   },
   pending: {
     label: 'Pending review',
-    bg: 'bg-[#f5f1e8]',
-    text: 'text-[#6b6559]',
-    border: 'border-[#e8e2d4]',
+    bg: 'bg-surface',
+    text: 'text-text-secondary',
+    border: 'border-border-hairline',
   },
   approved: {
     label: 'Approved',
-    bg: 'bg-emerald-50/70',
-    text: 'text-[#2f6b3f] font-semibold',
-    border: 'border-emerald-200/80',
+    bg: 'bg-signal-success-bg',
+    text: 'text-signal-success font-semibold',
+    border: 'border-signal-success-border',
   },
   sent: {
     label: 'Sent',
-    bg: 'bg-[#1c1a17]',
-    text: 'text-[#f5f1e8] font-medium',
-    border: 'border-[#1c1a17]',
+    bg: 'bg-surface-brand',
+    text: 'text-text-on-brand font-medium',
+    border: 'border-surface-brand',
   },
   discarded: {
     label: 'Discarded',
-    bg: 'bg-[#f5f1e8]',
-    text: 'text-[#6b6559]',
-    border: 'border-[#e8e2d4]',
+    bg: 'bg-surface',
+    text: 'text-text-secondary',
+    border: 'border-border-hairline',
   },
 }
 
@@ -68,14 +69,14 @@ export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
 
   const config = STATUS_CONFIG[status.toLowerCase()] || {
     label: status.replace(/_/g, ' '),
-    bg: 'bg-[#f5f1e8]',
-    text: 'text-[#6b6559]',
-    border: 'border-[#e8e2d4]',
+    bg: 'bg-surface',
+    text: 'text-text-secondary',
+    border: 'border-border-hairline',
   }
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${config.bg} ${config.text} ${config.border} ${className}`}
+      className={`inline-flex items-center px-1.5 py-px rounded-control whitespace-nowrap text-caption font-medium border ${config.bg} ${config.text} ${config.border} ${className}`}
     >
       {config.label}
     </span>

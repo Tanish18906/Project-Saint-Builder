@@ -1,4 +1,6 @@
+// LEGACY PRESENTATION — replaced per DESIGN_SYSTEM.md §12; do not extend. New UI uses src/components/ui.
 import React from 'react'
+import { themeLabel } from '@/lib/format'
 
 export type EmailTheme =
   | 'accounts'
@@ -12,6 +14,9 @@ export type EmailTheme =
   | 'certificates'
   | string
 
+// Label logic lives in lib/format so every screen shares it.
+export { themeLabel }
+
 interface ThemeBadgeProps {
   theme: EmailTheme | null | undefined
   className?: string
@@ -21,7 +26,7 @@ export function ThemeBadge({ theme, className = '' }: ThemeBadgeProps) {
   if (!theme) {
     return (
       <span
-        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#ece7db] text-[#4a453c] border border-[#e2dbcd] ${className}`}
+        className={`inline-flex items-center px-1.5 py-px rounded-control whitespace-nowrap text-caption font-medium bg-tag-bg text-tag-text ${className}`}
       >
         Unclassified
       </span>
@@ -30,9 +35,9 @@ export function ThemeBadge({ theme, className = '' }: ThemeBadgeProps) {
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#ece7db] text-[#4a453c] border border-[#e2dbcd] capitalize ${className}`}
+      className={`inline-flex items-center px-1.5 py-px rounded-control whitespace-nowrap text-caption font-medium bg-tag-bg text-tag-text ${className}`}
     >
-      {theme.replace(/_/g, ' ')}
+      {themeLabel(theme)}
     </span>
   )
 }

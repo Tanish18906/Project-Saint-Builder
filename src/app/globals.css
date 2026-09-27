@@ -1,46 +1,411 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   Foreman design tokens — the source of truth is DESIGN_SYSTEM.md.
+   Three layers:
+     1. Primitive   (:root, --p-*)   raw values. Never referenced by components.
+     2. Semantic    (:root, --fm-*)  meaning (canvas, fg-muted, danger-fg…).
+                                     The ONLY layer a future dark theme redefines.
+     3. Component   (:root, --fm-c-*) sizes/geometry for specific primitives.
+   Tailwind utilities are generated from the semantic layer via @theme inline.
+   Contrast for every text/background pair is checked by scripts/check-contrast.mjs.
+   ========================================================================== */
+
+/* ---------- 1. Primitive tokens ---------------------------------------- */
 :root {
-  --foreman-charcoal: #1c1a17;
-  --foreman-charcoal-light: #2a2723;
-  --foreman-cream: #f5f1e8;
-  --foreman-cream-dim: #e8e2d4;
-  --foreman-white: #ffffff;
-  --foreman-text-primary: #1c1a17;
-  --foreman-text-secondary: #6b6559;
+  /* Graphite — a neutral with a faint warm cast. */
+  --p-neutral-0: #ffffff;
+  --p-neutral-25: #fcfcfb;
+  --p-neutral-50: #f7f7f5;
+  --p-neutral-100: #efefec;
+  --p-neutral-150: #e6e6e2;
+  --p-neutral-200: #dcdcd7;
+  --p-neutral-300: #c5c5bf;
+  --p-neutral-400: #a2a29b;
+  --p-neutral-500: #6b6b64;
+  --p-neutral-600: #5c5c56;
+  --p-neutral-700: #464641;
+  --p-neutral-800: #30302c;
+  --p-neutral-900: #21211e;
+  --p-neutral-950: #161614;
 
-  /* Voice mic button — listening-state accent. Deliberately not urgency-red (that hue is
-     reserved for hazard signaling) and not the amber already used for the speaking state.
-     Muted/desaturated per the "restrained color use" rule for any new accent. */
-  --voice-listening-accent: #4d7480;
+  /* Ink — the single brand/action accent. Also carries "info". */
+  --p-ink-50: #f0f3fd;
+  --p-ink-100: #e0e7fb;
+  --p-ink-200: #c2cff6;
+  --p-ink-300: #98acee;
+  --p-ink-400: #6b86e2;
+  --p-ink-500: #4a66d4;
+  --p-ink-600: #3a52c0;
+  --p-ink-700: #2f429d;
+  --p-ink-800: #28377e;
+  --p-ink-900: #222e63;
 
-  /* Urgency — the only place color carries real signal, like a hazard marker on site */
-  --urgency-urgent: #b91c1c;
-  --urgency-urgent-bg: #fef2f2;
-  --urgency-urgent-border: #fecaca;
-  --urgency-priority: #c2560c;
-  --urgency-priority-bg: #fff7ed;
-  --urgency-priority-border: #fed7aa;
+  --p-red-50: #fdf2f1;
+  --p-red-100: #fbe2df;
+  --p-red-200: #f5c0ba;
+  --p-red-500: #d6443a;
+  --p-red-600: #bd3228;
+  --p-red-700: #9c281f;
 
-  /* Category neutral styling — category conveyed by text label, not hue */
-  --tag-neutral-bg: #ece7db;
-  --tag-neutral-border: #e2dbcd;
-  --tag-neutral-text: #4a453c;
+  --p-amber-50: #fdf7e8;
+  --p-amber-100: #faebc6;
+  --p-amber-200: #f4d58f;
+  --p-amber-500: #c98410;
+  --p-amber-600: #a66a09;
+  --p-amber-700: #84530b;
 
-  /* Status — weight/style does the work color used to do */
-  --status-sent-bg: var(--foreman-charcoal);
-  --status-sent-text: var(--foreman-cream);
-  --status-approved-text: #2f6b3f;
-  --status-approved-bg: #f0fdf4;
-  --status-approved-border: #bbf7d0;
-  --status-pending-text: var(--foreman-text-secondary);
-  --status-discarded-text: var(--foreman-text-secondary);
+  --p-green-50: #eff8f2;
+  --p-green-100: #d8efdf;
+  --p-green-200: #aedcbc;
+  --p-green-500: #2e9657;
+  --p-green-600: #237b46;
+  --p-green-700: #1d6139;
 }
 
-/* Voice page Tier 2 activity indicator — one shared bar-equalizer animation,
-   recolored per mode (speaking = amber, listening = --voice-listening-accent)
-   rather than two separate components, per the UX spec's "one component, two
-   visual modes" requirement. */
+/* ---------- 2. Semantic tokens ----------------------------------------- */
+:root {
+  /* Backgrounds */
+  --fm-canvas: var(--p-neutral-50);          /* app background */
+  --fm-panel: var(--p-neutral-0);            /* raised content: lists, workspace, cards */
+  --fm-sunken: var(--p-neutral-100);         /* wells, code, skeleton base */
+  --fm-hover: var(--p-neutral-100);          /* hover on panel rows/ghost controls */
+  --fm-pressed: var(--p-neutral-150);        /* active/pressed */
+  --fm-selected: var(--p-ink-50);            /* selected row / current item */
+  --fm-overlay: rgb(22 22 20 / 0.45);        /* modal scrim */
+  --fm-inverse: var(--p-neutral-900);        /* tooltips, toasts */
+
+  /* Foreground */
+  --fm-fg: var(--p-neutral-900);             /* primary text  (16.1:1 on panel) */
+  --fm-fg-muted: var(--p-neutral-600);       /* secondary text (6.7:1) */
+  --fm-fg-subtle: var(--p-neutral-500);      /* tertiary / metadata (5.4:1, 4.8:1 on selected) */
+  --fm-fg-disabled: var(--p-neutral-400);    /* disabled only — exempt from contrast */
+  --fm-fg-inverse: var(--p-neutral-0);
+  --fm-fg-inverse-muted: var(--p-neutral-300);
+  --fm-fg-on-accent: var(--p-neutral-0);
+
+  /* Lines */
+  --fm-line: var(--p-neutral-150);           /* hairline separators (decorative) */
+  --fm-line-strong: var(--p-neutral-200);    /* panel outlines, table heads */
+  --fm-line-control: var(--p-neutral-500);   /* form control borders — 3:1 (WCAG 1.4.11) */
+  --fm-focus: var(--p-ink-500);              /* focus ring — 5.1:1 on panel */
+
+  /* Accent (primary action, links, selection, info) */
+  --fm-accent: var(--p-ink-600);
+  --fm-accent-hover: var(--p-ink-700);
+  --fm-accent-pressed: var(--p-ink-800);
+  --fm-accent-subtle: var(--p-ink-50);
+  --fm-accent-subtle-hover: var(--p-ink-100);
+  --fm-accent-line: var(--p-ink-200);
+  --fm-accent-fg: var(--p-ink-700);          /* accent-coloured text on panel/subtle */
+
+  /* Danger — urgent, destructive, errors */
+  --fm-danger: var(--p-red-600);
+  --fm-danger-hover: var(--p-red-700);
+  --fm-danger-subtle: var(--p-red-50);
+  --fm-danger-line: var(--p-red-200);
+  --fm-danger-fg: var(--p-red-700);
+  --fm-danger-mark: var(--p-red-500);        /* stripes, dots — non-text 3:1 */
+
+  /* Warning — priority, caution */
+  --fm-warning-subtle: var(--p-amber-50);
+  --fm-warning-line: var(--p-amber-200);
+  --fm-warning-fg: var(--p-amber-700);
+  --fm-warning-mark: var(--p-amber-600);
+
+  /* Success — approved, sent, saved */
+  --fm-success-subtle: var(--p-green-50);
+  --fm-success-line: var(--p-green-200);
+  --fm-success-fg: var(--p-green-700);
+  --fm-success-mark: var(--p-green-500);
+}
+
+/* ---------- 3. Component tokens ---------------------------------------- */
+:root {
+  /* Control heights. Coarse pointers are raised to 44px by the primitives. */
+  --fm-c-control-sm: 1.75rem;   /* 28px — dense toolbars, inline row actions */
+  --fm-c-control-md: 2rem;      /* 32px — default */
+  --fm-c-control-lg: 2.5rem;    /* 40px — primary form/login, voice */
+  --fm-c-touch: 2.75rem;        /* 44px — minimum touch target */
+
+  /* Shell geometry (used by the app shell step) */
+  --fm-c-topbar-h: 3rem;
+  --fm-c-sidebar-w: 14.5rem;
+  --fm-c-queue-w: 24rem;
+  --fm-c-reading-max: 44rem;    /* ~72ch reading measure for email bodies */
+
+  /* Rows */
+  --fm-c-row-compact: 2.5rem;
+  --fm-c-row-comfortable: 4.25rem;
+
+  /* Motion */
+  --fm-duration-fast: 120ms;
+  --fm-duration-base: 160ms;
+  --fm-duration-slow: 220ms;
+  --fm-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --fm-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* ---------- Tailwind theme: semantic utilities ------------------------- */
+@theme inline {
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-canvas: var(--fm-canvas);
+  --color-panel: var(--fm-panel);
+  --color-sunken: var(--fm-sunken);
+  --color-hover: var(--fm-hover);
+  --color-pressed: var(--fm-pressed);
+  --color-selected: var(--fm-selected);
+  --color-overlay: var(--fm-overlay);
+  --color-inverse: var(--fm-inverse);
+
+  --color-fg: var(--fm-fg);
+  --color-fg-muted: var(--fm-fg-muted);
+  --color-fg-subtle: var(--fm-fg-subtle);
+  --color-fg-disabled: var(--fm-fg-disabled);
+  --color-fg-inverse: var(--fm-fg-inverse);
+  --color-fg-inverse-muted: var(--fm-fg-inverse-muted);
+  --color-fg-on-accent: var(--fm-fg-on-accent);
+
+  --color-line: var(--fm-line);
+  --color-line-strong: var(--fm-line-strong);
+  --color-line-control: var(--fm-line-control);
+  --color-focus: var(--fm-focus);
+
+  --color-accent: var(--fm-accent);
+  --color-accent-hover: var(--fm-accent-hover);
+  --color-accent-pressed: var(--fm-accent-pressed);
+  --color-accent-subtle: var(--fm-accent-subtle);
+  --color-accent-subtle-hover: var(--fm-accent-subtle-hover);
+  --color-accent-line: var(--fm-accent-line);
+  --color-accent-fg: var(--fm-accent-fg);
+
+  --color-danger: var(--fm-danger);
+  --color-danger-hover: var(--fm-danger-hover);
+  --color-danger-subtle: var(--fm-danger-subtle);
+  --color-danger-line: var(--fm-danger-line);
+  --color-danger-fg: var(--fm-danger-fg);
+  --color-danger-mark: var(--fm-danger-mark);
+
+  --color-warning-subtle: var(--fm-warning-subtle);
+  --color-warning-line: var(--fm-warning-line);
+  --color-warning-fg: var(--fm-warning-fg);
+  --color-warning-mark: var(--fm-warning-mark);
+
+  --color-success-subtle: var(--fm-success-subtle);
+  --color-success-line: var(--fm-success-line);
+  --color-success-fg: var(--fm-success-fg);
+  --color-success-mark: var(--fm-success-mark);
+
+  --ease-standard: var(--fm-ease-standard);
+  --ease-exit: var(--fm-ease-exit);
+}
+
+/* ---------- Tailwind theme: type, radius, elevation, motion ------------ */
+@theme {
+  /* Closed type scale. Tailwind's defaults are cleared so only these exist.
+     14px is the app's base; 12px is the floor for persistent text; 11px is
+     reserved for badges and keyboard hints. */
+  --text-*: initial;
+  --text-2xs: 0.6875rem;  --text-2xs--line-height: 1rem;      /* 11/16 badges, kbd only */
+  --text-xs: 0.75rem;     --text-xs--line-height: 1rem;       /* 12/16 metadata, labels */
+  --text-sm: 0.8125rem;   --text-sm--line-height: 1.25rem;    /* 13/20 secondary UI text */
+  --text-base: 0.875rem;  --text-base--line-height: 1.375rem; /* 14/22 default UI + list rows */
+  --text-md: 0.9375rem;   --text-md--line-height: 1.5rem;     /* 15/24 reading: email + reply body */
+  --text-lg: 1rem;        --text-lg--line-height: 1.5rem;     /* 16/24 section titles; mobile inputs */
+  --text-xl: 1.125rem;    --text-xl--line-height: 1.625rem;   /* 18/26 page titles */
+  --text-2xl: 1.375rem;   --text-2xl--line-height: 1.875rem;  /* 22/30 workspace subject */
+  --text-3xl: 1.75rem;    --text-3xl--line-height: 2.25rem;   /* 28/36 login wordmark only */
+
+  /* Radius — small, precise geometry. */
+  --radius-xs: 0.125rem;  /* 2px  focus-adjacent details, kbd */
+  --radius-sm: 0.25rem;   /* 4px  badges, checkboxes */
+  --radius-md: 0.375rem;  /* 6px  controls: buttons, inputs, menus items */
+  --radius-lg: 0.5rem;    /* 8px  panels, popovers, toasts */
+  --radius-xl: 0.75rem;   /* 12px dialogs, sheets */
+
+  /* Elevation — borders do most of the work; shadows only for things that float. */
+  --shadow-xs: 0 1px 0 0 rgb(22 22 20 / 0.04);
+  --shadow-sm: 0 1px 2px 0 rgb(22 22 20 / 0.06), 0 1px 1px 0 rgb(22 22 20 / 0.03);
+  --shadow-md: 0 4px 12px -2px rgb(22 22 20 / 0.10), 0 2px 4px -2px rgb(22 22 20 / 0.06);
+  --shadow-lg: 0 16px 40px -8px rgb(22 22 20 / 0.18), 0 4px 12px -4px rgb(22 22 20 / 0.08);
+
+  /* Enter/exit animations for overlays (Radix data-state). State changes only —
+     nothing ambient, nothing looping except spinners and live audio meters. */
+  --animate-fm-fade-in: fm-fade-in var(--fm-duration-base) var(--fm-ease-standard);
+  --animate-fm-fade-out: fm-fade-out var(--fm-duration-fast) var(--fm-ease-exit);
+  --animate-fm-pop-in: fm-pop-in var(--fm-duration-base) var(--fm-ease-standard);
+  --animate-fm-pop-out: fm-pop-out var(--fm-duration-fast) var(--fm-ease-exit);
+  --animate-fm-slide-up: fm-slide-up var(--fm-duration-slow) var(--fm-ease-standard);
+  --animate-fm-slide-down: fm-slide-down var(--fm-duration-base) var(--fm-ease-exit);
+  --animate-fm-slide-left: fm-slide-left var(--fm-duration-slow) var(--fm-ease-standard);
+  --animate-fm-slide-right: fm-slide-right var(--fm-duration-base) var(--fm-ease-exit);
+
+  @keyframes fm-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fm-fade-out { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes fm-pop-in { from { opacity: 0; transform: translateY(4px) scale(0.98); } to { opacity: 1; transform: none; } }
+  @keyframes fm-pop-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(0.98); } }
+  @keyframes fm-slide-up { from { transform: translateY(100%); } to { transform: none; } }
+  @keyframes fm-slide-down { from { transform: none; } to { transform: translateY(100%); } }
+  @keyframes fm-slide-left { from { transform: translateX(100%); } to { transform: none; } }
+  @keyframes fm-slide-right { from { transform: none; } to { transform: translateX(100%); } }
+}
+
+/* ---------- Base ------------------------------------------------------- */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--fm-canvas);
+    color: var(--fm-fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Default focus treatment for anything a primitive doesn't style itself. */
+  :focus-visible {
+    outline: 2px solid var(--fm-focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--p-ink-200);
+    color: var(--fm-fg);
+  }
+
+  /* Safari still renders the native disclosure triangle on <summary>. */
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+/* Scroll panes inside the window (queue column): a thin, neutral scrollbar
+   instead of the platform default, which is heavy on Windows. */
+@utility fm-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--p-neutral-300) transparent;
+}
+
+/* While the phone tab bar is on screen, bottom-anchored UI (toasts) sits above it. */
+@media (width < 40rem) {
+  :root:has([data-mobile-tabbar]) {
+    --fm-bottom-offset: calc(3.5rem + env(safe-area-inset-bottom));
+  }
+  /* …and above the review workspace's action bar on an email. */
+  :root:has([data-composer-actions]) {
+    --fm-bottom-offset: calc(4.25rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Review workspace (components/workspace): one column — header, triage and
+   email, then the reply, then context. When the pane itself is wide (a size
+   container, so it follows the sidebar too) the reply moves beside the email. */
+@layer components {
+  .fm-workspace-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "head" "main" "reply" "context";
+  }
+  @container (min-width: 60rem) {
+    .fm-workspace-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(22rem, 26rem);
+      grid-template-rows: auto auto 1fr;
+      grid-template-areas: "head head" "main reply" "context reply";
+    }
+  }
+}
+
+/* Motion is never the only carrier of meaning. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   LEGACY COMPATIBILITY LAYER — temporary.
+   The pre-2026-09 screens (EmailDetailView, AuditLogView,
+   VoiceEmailView, voice system pages, login, error/not-found/loading) still use
+   the retired token names. They are mapped onto the NEW semantic tokens so those
+   screens keep rendering until each is rebuilt. Rules:
+     • New code must never use anything in this block.
+     • Delete each alias once no screen references it (grep before deleting).
+     • Delete the whole block when the rebuild is complete.
+   ========================================================================== */
+:root {
+  --foreman-charcoal: var(--p-neutral-900);
+  --foreman-charcoal-light: var(--p-neutral-800);
+  --foreman-charcoal-lighter: var(--p-neutral-700);
+  --foreman-cream: var(--fm-canvas);
+  --foreman-cream-dim: var(--fm-line);
+  --foreman-white: var(--fm-panel);
+  --foreman-text-primary: var(--fm-fg);
+  --foreman-text-secondary: var(--fm-fg-muted);
+  --foreman-text-tertiary: var(--fm-fg-subtle);
+  --voice-listening-accent: var(--fm-accent);
+}
+
+@theme inline {
+  --color-surface: var(--fm-canvas);
+  --color-surface-raised: var(--fm-panel);
+  --color-surface-sunken: var(--fm-sunken);
+  --color-surface-brand: var(--p-neutral-900);
+  --color-surface-brand-hover: var(--p-neutral-800);
+  --color-surface-brand-elevated: var(--p-neutral-700);
+
+  --color-text-primary: var(--fm-fg);
+  --color-text-secondary: var(--fm-fg-muted);
+  --color-text-tertiary: var(--fm-fg-subtle);
+  --color-text-on-brand: var(--p-neutral-0);
+  --color-text-on-brand-muted: var(--p-neutral-300);
+
+  --color-border-hairline: var(--fm-line);
+  --color-border-control: var(--fm-line-control);
+  --color-border-brand: var(--fm-focus);
+
+  --color-signal-urgent: var(--fm-danger-fg);
+  --color-signal-urgent-bg: var(--fm-danger-subtle);
+  --color-signal-urgent-border: var(--fm-danger-line);
+  --color-signal-priority: var(--fm-warning-mark);
+  --color-signal-priority-text: var(--fm-warning-fg);
+  --color-signal-priority-bg: var(--fm-warning-subtle);
+  --color-signal-priority-border: var(--fm-warning-line);
+  --color-signal-success: var(--fm-success-fg);
+  --color-signal-success-bg: var(--fm-success-subtle);
+  --color-signal-success-border: var(--fm-success-line);
+
+  --color-tag-bg: var(--fm-sunken);
+  --color-tag-border: var(--fm-line);
+  --color-tag-text: var(--p-neutral-700);
+}
+
+@theme {
+  --text-display: 1.25rem;    --text-display--line-height: 1.75rem;
+  --text-heading: 0.9375rem;  --text-heading--line-height: 1.25rem;
+  --text-body: 0.875rem;      --text-body--line-height: 1.375rem;
+  --text-secondary: 0.8125rem; --text-secondary--line-height: 1.125rem;
+  --text-caption: 0.75rem;    --text-caption--line-height: 1rem;
+  --text-micro: 0.6875rem;    --text-micro--line-height: 0.875rem;
+  --text-wordmark: 1.75rem;   --text-wordmark--line-height: 2rem;
+
+  --radius-control: 0.375rem;
+  --radius-surface: 0.5rem;
+}
+
+/* Legacy voice equalizer — still used by VoiceEmailView until the voice rebuild.
+   It is a live-audio meter (state, not decoration), so it is permitted to loop. */
 @keyframes voice-eq {
   0%,
   100% {
@@ -49,13 +414,4 @@
   50% {
     transform: scaleY(1);
   }
-}
-
-body {
-  background-color: var(--foreman-cream);
-  color: var(--foreman-text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  -webkit-font-smoothing: antialiased;
 }

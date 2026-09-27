@@ -90,7 +90,7 @@ import { EmailFeed } from '@/components/inbox/email-feed';
 export default function InboxPage() {
   return (
     <main className="flex-1 p-6">
-      <h1 className="text-2xl font-bold text-slate-900">Inbox</h1>
+      <h1 className="text-xl font-semibold text-fg">Inbox</h1>
       <Suspense fallback={<InboxListSkeleton />}>
         <EmailFeed />
       </Suspense>

@@ -1,3 +1,5 @@
+> **Design authority notice (2026-09-27):** Visual and layout guidance in this document (colors, tokens, typography, badge styling, layout, component appearance) is **superseded** by [`DESIGN_SYSTEM.md`](../../DESIGN_SYSTEM.md). Functional requirements, data rules, safety rules and business logic described here remain valid.
+
 # Foreman Dashboard — Build Spec (Frontend)
 
 **For: coding agent**

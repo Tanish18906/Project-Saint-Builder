@@ -2,7 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { login } from './actions'
+import { toSignInMessage } from '@/lib/user-facing-error'
 import { Lock, Mail, AlertCircle, Loader2 } from 'lucide-react'
+
+const INPUT_CLASS =
+  'w-full h-11 pl-9 pr-3 text-body rounded-control border border-border-control bg-surface-raised text-text-primary placeholder:text-text-tertiary transition-[border-color,box-shadow] duration-150 hover:border-text-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-border-brand focus-visible:ring-offset-1 focus-visible:ring-offset-surface-raised'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -13,57 +17,45 @@ export default function LoginPage() {
     startTransition(async () => {
       const res = await login(formData)
       if (res?.error) {
-        setError(res.error)
+        console.error('[Login] Sign-in failed:', res.error)
+        setError(toSignInMessage(res.error))
       }
     })
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#f5f1e8]">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-sm border border-[#e8e2d4] overflow-hidden">
-        {/* Brand Header */}
-        <div className="bg-[#1c1a17] px-6 py-8 text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-[#f5f1e8]">
-            Foreman
-          </h1>
-          <p className="text-xs uppercase tracking-wider text-[#e8e2d4]/70 mt-1">
-            Allsaints Builders Email Assistant
-          </p>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10 bg-surface">
+      <div className="w-full max-w-[380px]">
+        {/* Wordmark on the page, not in a banner */}
+        <div className="mb-6 px-1">
+          <p className="text-wordmark font-bold tracking-tight text-text-primary">Foreman</p>
+          <p className="text-secondary text-text-secondary mt-0.5">Allsaints Builders · Email triage and approval</p>
         </div>
 
-        {/* Login Form */}
-        <div className="p-6 sm:p-8">
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-[#1c1a17]">
-              Staff sign in
-            </h2>
-            <p className="text-sm text-[#6b6559] mt-1">
-              Sign in with your staff account to review and triage inboxes.
-            </p>
-          </div>
+        <div className="bg-surface-raised rounded-surface border border-border-hairline shadow-sm p-6 sm:p-7">
+          <h1 className="text-heading font-semibold text-text-primary">Sign in</h1>
+          <p className="text-secondary text-text-secondary mt-1">Use your Allsaints Builders staff account.</p>
 
           {error && (
-            <div className="mb-5 p-3.5 rounded bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-red-600" />
+            <div
+              role="alert"
+              className="mt-5 px-3 py-2.5 rounded-control bg-signal-urgent-bg border border-signal-urgent-border text-signal-urgent flex items-start gap-2"
+            >
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
               <div>
-                <p className="font-medium">Authentication failed</p>
-                <p className="text-xs mt-0.5 text-red-600">{error}</p>
+                <p className="text-secondary font-semibold">Couldn’t sign in</p>
+                <p className="text-caption mt-0.5">{error}</p>
               </div>
             </div>
           )}
 
-          <form action={handleSubmit} className="space-y-4">
+          <form action={handleSubmit} className="mt-5 space-y-4">
             <div>
-              <label
-                htmlFor="email"
-                className="block text-xs font-medium text-[#1c1a17] mb-1.5"
-              >
+              <label htmlFor="email" className="block text-caption font-medium text-text-primary mb-1.5">
                 Email address
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#6b6559]">
-                  <Mail className="h-4 w-4" />
-                </div>
+                <Mail aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary pointer-events-none" />
                 <input
                   id="email"
                   name="email"
@@ -71,22 +63,17 @@ export default function LoginPage() {
                   autoComplete="email"
                   required
                   placeholder="name@allsaintsbuilders.com"
-                  className="w-full pl-9 pr-3 py-2.5 text-sm border border-[#e8e2d4] rounded bg-white text-[#1c1a17] placeholder:text-[#6b6559]/50 focus:outline-none focus:ring-1 focus:ring-[#1c1a17] focus:border-[#1c1a17] min-h-[44px]"
+                  className={INPUT_CLASS}
                 />
               </div>
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-xs font-medium text-[#1c1a17] mb-1.5"
-              >
+              <label htmlFor="password" className="block text-caption font-medium text-text-primary mb-1.5">
                 Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#6b6559]">
-                  <Lock className="h-4 w-4" />
-                </div>
+                <Lock aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary pointer-events-none" />
                 <input
                   id="password"
                   name="password"
@@ -94,7 +81,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   required
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2.5 text-sm border border-[#e8e2d4] rounded bg-white text-[#1c1a17] placeholder:text-[#6b6559]/50 focus:outline-none focus:ring-1 focus:ring-[#1c1a17] focus:border-[#1c1a17] min-h-[44px]"
+                  className={INPUT_CLASS}
                 />
               </div>
             </div>
@@ -102,25 +89,21 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isPending}
-              className="w-full mt-2 py-3 px-4 bg-[#1c1a17] hover:bg-[#2a2723] text-[#f5f1e8] font-medium text-sm rounded transition-colors disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+              className="w-full h-11 mt-1 rounded-control bg-surface-brand hover:bg-surface-brand-hover text-text-on-brand text-secondary font-semibold transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-raised"
             >
               {isPending ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Signing in...
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                  Signing in…
                 </>
               ) : (
                 'Sign in'
               )}
             </button>
           </form>
-
-          <div className="mt-6 pt-4 border-t border-[#e8e2d4] text-center">
-            <p className="text-xs text-[#6b6559]">
-              Internal authorized access only.
-            </p>
-          </div>
         </div>
+
+        <p className="text-caption text-text-tertiary mt-4 px-1">Internal access for authorised staff only.</p>
       </div>
     </div>
   )

@@ -1,61 +1,36 @@
 ---
 name: frontend-developer
 description: >-
-  Expert guidance for modern frontend web application development using Next.js 16 App Router,
-  React 19, Tailwind CSS v4, TypeScript, Supabase Realtime UI, accessible component design,
-  and state management. Use whenever designing, building, refactoring, or optimizing frontend
-  interfaces, components, and pages.
+  Engineering playbook for the Foreman frontend: Next.js 16 App Router, React 19, Tailwind CSS v4,
+  TypeScript and Supabase Realtime. Use whenever building, refactoring or reviewing frontend
+  components and pages. Visual design authority is DESIGN_SYSTEM.md at the repo root — this skill
+  covers engineering practice, not appearance.
 ---
 
 # Frontend Developer Skill
 
-A comprehensive operational playbook for building fast, beautiful, responsive, and accessible web interfaces with Next.js 16 (App Router), React 19, Tailwind CSS v4, and Supabase Realtime.
+Engineering practice for this codebase. **For every visual or interaction decision (colour, type, spacing, layout, component look, states, motion, responsive behaviour), `DESIGN_SYSTEM.md` at the repository root is the single authority.** Read it before building UI. Older design specs in `Docs/archive/superseded-design/` are historical only.
 
 ---
 
-## 🎯 Core Principles
+## Core principles
 
-1. **Server-First by Default**: Default to React Server Components (RSC) for data fetching, static rendering, and SEO. Use Client Components (`'use client'`) only when interactive state (`useState`, `useEffect`), event handlers (`onClick`, `onChange`), browser APIs, or Realtime WebSockets are strictly necessary.
-2. **Function-Driven Premium Aesthetics**: Avoid generic boilerplate or cluttered layouts. Prioritize clear visual hierarchy, fluid typography, harmonious color palettes, subtle micro-interactions, responsive padding/margins, and graceful loading/empty states.
-3. **Optimistic & Realtime Sync**: Leverage Supabase Realtime channels with optimistic UI updates to ensure the interface reflects actions with 0ms perceived latency while synchronizing seamlessly with the database.
-4. **Resilience & Accessibility**: Implement semantic HTML5 elements, keyboard navigation, accessible ARIA attributes, error boundaries, and loading skeletons.
+1. **Server-first.** Default to Server Components. Use `'use client'` only for state, event handlers, browser APIs or Realtime.
+2. **Presentation is separate from logic.** Components render; hooks in `src/hooks/` own state, Realtime and calls to the shared server actions; pure rules live in `src/lib/domain.ts`, formatting in `src/lib/format.ts`.
+3. **Compose primitives.** Build UI from `src/components/ui/` (Button, Badge, Input, Dialog, ConfirmDialog, Sheet, DropdownMenu, Tooltip, Toast, EmptyState, ErrorState…). Use semantic token utilities only. No raw hex, no Tailwind default palette, and no restyling primitives through `className`.
+4. **Realtime hygiene.** Every Supabase channel is removed in its `useEffect` cleanup.
+5. **Accessible by construction.** Semantic HTML, keyboard operation, visible focus, and distinct loading/empty/error states. Follow the checklist in `DESIGN_SYSTEM.md` §13.
 
----
+## References
 
-## 📚 Specialized References
+- [Next.js 16 App Router & RSC](./references/nextjs16-app-router.md): server/client boundaries, server actions, route protection.
+- [Supabase Realtime & optimistic UI](./references/supabase-realtime-ui.md): channel management, cleanup, optimistic reconciliation.
+- **Design:** [`DESIGN_SYSTEM.md`](../../../DESIGN_SYSTEM.md) and the live reference at `/design-system` (dev only).
 
-Detailed manuals and pattern libraries for specific sub-systems:
-- 📖 [Next.js 16 App Router & RSC Guide](./references/nextjs16-app-router.md) — Server vs Client component boundaries, Server Actions, Route Protection, Middleware.
-- 🎨 [Tailwind CSS v4 & Modern Design Systems](./references/tailwind-v4-design-system.md) — Tailwind v4 `@theme`, color tokens, typography, micro-animations, responsive layout rules.
-- ⚡ [Supabase Realtime & Optimistic UI Patterns](./references/supabase-realtime-ui.md) — WebSocket channel management, subscription cleanup, optimistic state reconcilers.
+## Workflow
 
----
-
-## 🛠️ Step-by-Step Frontend Workflow
-
-### 1. Requirements & State Architecture
-- Identify data dependencies: What can be fetched on the server vs. what needs client-side subscriptions?
-- Determine component hierarchy: Separate pure presentational components from stateful container components.
-- Plan interactive states: Default, hover, active, focused, disabled, loading skeleton, error boundary, and empty state.
-
-### 2. Component Design & Composition
-- Keep components focused and single-purpose.
-- Place reusable UI building blocks in `src/components/ui/` (e.g. `button.tsx`, `badge.tsx`, `modal.tsx`, `skeleton.tsx`).
-- Place feature-specific domain components in `src/components/<feature>/` (e.g., `src/components/inbox/`, `src/components/drafts/`).
-- Use standard Lucide React icons with consistent sizing (`size-4`, `size-5`).
-
-### 3. Styling & Layout with Tailwind CSS v4
-- Use semantic class names and consistent spacing scales (`p-4`, `gap-3`, `space-y-4`).
-- Ensure full responsiveness across all breakpoints (`sm:`, `md:`, `lg:`, `xl:`).
-- Add smooth transitions on interactive elements (`transition-colors duration-150`, `transition-all ease-in-out`).
-- Avoid banned design tropes: No colored glowing border accents on dark backgrounds, no over-nested cards, no untracked large headings.
-
-### 4. Realtime & Optimistic Updates
-- Create custom React hooks for Supabase Realtime subscriptions (e.g., `useRealtimeEmails`, `useRealtimeDrafts`).
-- Always clean up channel subscriptions in `useEffect` return functions (`supabase.removeChannel(channel)`).
-- Implement optimistic feedback on user actions (e.g. approving a draft updates UI instantly before database acknowledgment).
-
-### 5. Verification & Testing
-- Validate TypeScript types and run `npm run build` or `eslint` to catch syntax/type regressions.
-- Test responsive behavior on mobile (375px), tablet (768px), and desktop (1280px+).
-- Verify dark/light theme contrast and accessibility.
+1. **Data and state.** What's fetched on the server, and what needs a client subscription? Put stateful logic in a hook, not in the component.
+2. **Composition.** Feature components go in `src/components/<feature>/` (`shell/`, `queue/`, `workspace/`, `activity/`, `voice/`). Reusable, domain-free building blocks go in `src/components/ui/`. If a primitive needs a new look, add a variant there and document it.
+3. **States.** Design default, hover, focus, selected, disabled, loading, empty, error and locked up front, using the patterns in `DESIGN_SYSTEM.md` §7 and §10.
+4. **Functional invariants.** Never alter the write path (the three server actions), the post-approval lockdown, voice safety guards, token auth, or DOMPurify sanitising while doing UI work (`DESIGN_SYSTEM.md` §15).
+5. **Verify.** Run `npx tsc --noEmit`, `npm run lint` and `npm run build`; after colour changes, `node scripts/check-contrast.mjs`. Check 375px, 768px and 1280px+ widths, keyboard-only use, and `prefers-reduced-motion`.

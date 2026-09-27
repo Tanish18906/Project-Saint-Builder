@@ -1,3 +1,5 @@
+> **Design authority notice (2026-09-27):** The companion UI spec and phased plan were archived to `Docs/archive/superseded-design/voice/`. Visual guidance and the "do not touch the voice page" restrictions in this document are **superseded** by [`DESIGN_SYSTEM.md`](../../DESIGN_SYSTEM.md). The interaction **state list (§2), edge states (§4–§5) and safety constraints (§8: no voice send, no weakening of recording/playback/token logic) remain in force.**
+
 # Voice Page — UX Redesign Spec
 
 **For: coding agent**
