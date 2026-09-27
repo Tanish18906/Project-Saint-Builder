@@ -31,7 +31,7 @@ Foreman is a work queue. Staff open it to review AI-drafted replies, adjust them
 ```
 src/app/globals.css          tokens: primitive → semantic → component; legacy block (temporary)
 src/components/ui/           primitives. No data access, no domain knowledge.
-src/components/<feature>/    feature components (queue/, workspace/, activity/, voice/, shell/) — built next
+src/components/<feature>/    feature components: shell/, queue/, workspace/ (built); activity/, voice/ next
 src/hooks/                   stateful logic: realtime, draft state machine, filters, voice session
 src/lib/domain.ts            record types, option lists, pure rules (lock state, parsing)
 src/lib/format.ts            display formatting (dates, roles, themes, draft types)
@@ -106,8 +106,8 @@ src/lib/cn.ts                class joiner
 | Token | Size / line | Use |
 |---|---|---|
 | `text-3xl` | 28/36 | Login wordmark only |
-| `text-2xl` | 22/30 | Workspace subject (the one large moment) |
-| `text-xl` | 18/26 | Page titles |
+| `text-2xl` | 22/30 | Reserved; not used by the workspace (the subject is `text-xl` — the client wants density over drama) |
+| `text-xl` | 18/26 | Page titles; the workspace email subject |
 | `text-lg` | 16/24 | Section and dialog titles; all input text on touch devices |
 | `text-md` | 15/24 | **Reading**: email body, reply draft |
 | `text-base` | 14/22 | Default UI: rows, buttons, menus |
@@ -193,10 +193,10 @@ Tailwind's default type scale is cleared, so only these exist. Note that `text-s
 | `EmptyState`, `ErrorState`, `InlineAlert` | Persistent states. `InlineAlert` tones: info, success, warning, danger. |
 | `Tooltip` (+`TooltipProvider`) | Supplementary only; never essential information. Mounted once in `Providers`. |
 | `Dialog` / `DialogContent` | Focused tasks. |
-| `ConfirmDialog` | **Consequential or irreversible actions.** `role="alertdialog"`, ignores scrim clicks, initial focus on Cancel, confirm button shows loading. |
+| `ConfirmDialog` | **Consequential or irreversible actions.** `role="alertdialog"`, ignores scrim clicks, initial focus on Cancel, confirm button shows loading. It's controlled (no Radix trigger), so pass `onCloseAutoFocus` to send focus back to the opening button — or to the result when that button no longer exists. |
 | `Sheet` / `SheetContent` | `bottom` (phone panels, safe-area aware) or `right` (secondary details). |
 | `DropdownMenu*` | Action menus and sort/radio choices. |
-| `ToastProvider` / `useToast` | Transient results of the user's own actions. Errors persist until dismissed; at most three on screen. |
+| `ToastProvider` / `useToast` | Transient results of the user's own actions. Errors persist until dismissed; at most three on screen. Toasts rise above any on-screen sticky action bar (`[data-composer-actions]` sets `--fm-toast-lift` / `--fm-bottom-offset`). |
 | `Kbd` | Shortcut hints; hidden on touch-only devices. |
 
 ---
@@ -210,12 +210,24 @@ Tailwind's default type scale is cleared, so only these exist. Note that `text-s
 - Never stack persistent success banners above the content.
 
 **Consequential actions (sending)**
-- "Approve & send…" (with the ellipsis) opens a `ConfirmDialog` that shows **To, From (the sending inbox), and reply provenance** (AI unedited / AI edited / manual, word count).
-- The confirm button repeats the verb: "Approve & send". Cancel is the default focus.
-- After success: an inline locked state in the workspace, plus a toast offering **Next email**.
+- "Approve & send…" (with the ellipsis; also ⌘/Ctrl+Enter in the reply) opens a `ConfirmDialog`: **To, From (the sending inbox), Subject (as n8n sends it: `Re: …`), reply provenance, word count, "plain text"**, and the reply text itself. The description says plainly that it sends now and can't be undone or recalled. Hierarchy and words carry the weight — the confirm button is the normal primary, not red.
+- Cancel is the default focus; scrim clicks never dismiss; it can't be dismissed while the send is in flight. A failure keeps the dialog open with "Nothing was sent" and a **Try again** confirm; the optimistic lock is rolled back.
+- After success: an inline locked state ("Approved — sending", then "Sent" when n8n reports it) with **Next email** / **Back to <view>** — or "That was the last email in <view>" — plus a toast offering **Next email**. Focus moves to the locked state.
 - The backend is unchanged: confirming calls the same `approveAndSendAction`.
 
-**Destructive but recoverable actions** (discarding an AI draft): no dialog. Act immediately and offer **Undo** in the toast or inline, restoring the previous text through the same hook.
+**Discard** clears the drafted text so a manual reply can be written; it does not close or archive the email. Because it writes to the audit log and changes the email's state in the queue, it confirms first (`ConfirmDialog`, danger tone) with copy that says exactly that. The AI draft stays restorable ("Restore AI draft") until a reply is approved.
+
+**Review workspace** (`src/components/workspace/`, route `/emails/[id]`)
+- Reading order is decision order: subject (`text-xl`) → sender, time, inbox, urgency → **Triage** (summary; routed to; theme; confidence as High ≥85% / Medium 60–84% / Low <60%, Low in warning text "— check the routing") → the original email → **Reply** → context (other messages in the thread, then Activity).
+- A size container: when the pane is ≥ 60rem the reply moves into a sticky right column (24–28rem) beside the email; narrower panes stack it after the email. This follows the pane, not the window, so it responds to the sidebar too.
+- **Reply header** says three things in words: provenance (the `draftTypeLabel` vocabulary — AI draft · unedited / AI draft · edited / Manual reply; display only, the server still derives `draft_type`), and a save state: **Saved · Saving… · Unsaved changes · Not saved · Locked**. No success banners; results are toasts.
+- **Compare with AI draft** shows a real word diff (removed struck through, added underlined, with screen-reader "[removed: …]" text) when the text differs from the stored AI draft.
+- The action bar (Discard draft · Save draft · Approve & send…) is `sticky bottom-0` inside the reply, so it follows you while the reply is on screen and never appears before you have reached it; safe-area padded on phones.
+- **Original email:** HTML is sanitised by DOMPurify (config unchanged) in the browser and rendered in a **shadow root** with token-based reading styles — the email's own CSS can't restyle the app, the app's utilities can't flatten the email, paint containment keeps `position: fixed` content inside the email's box, links open in a new tab (`noopener`), and forms can't submit. Plain-text bodies render as pre-wrapped reading text.
+- **Activity** for this email only: every `audit_log` row, oldest first, in plain words ("Reply approved · Dev User — AI draft · edited · By voice") with exact UK timestamps (seconds). Unknown actions are shown, never dropped; a failed read says so.
+- **Keyboard:** J / K next / previous in the queue's order, Esc back to the queue (focus returns to that row), R to the reply, ⌘/Ctrl+S save, ⌘/Ctrl+Enter review and send. With an email open, J/K belong to the workspace; ↑/↓ still move within the list.
+- **Unsaved changes are protected:** moving to another email or screen (links, J/K, back, close) asks "Leave without saving?"; closing the tab uses the browser's warning. Changing queue search/filters never navigates the email away.
+- **States:** loading skeleton in the workspace's shape (queue stays put) · unavailable email · load failure with Try again · waiting for the suggested reply · manual reply · discarded (with restore) · locked approved / sent.
 
 **Lists — the queue row** (`src/components/queue/queue-row.tsx`)
 - Three lines: *sender · urgency · time* / *subject · reply state* / *context (theme · routed roles) — preview*. Sender `base`, subject `sm`, preview `sm fg-subtle`, time `xs` tabular.
@@ -230,6 +242,7 @@ Tailwind's default type scale is cleared, so only these exist. Note that `text-s
 - One quiet search field (`Input variant="quiet"`, capped width) and one Filter control (Inbox, Urgency, Theme, Routed to). Never a row of equal-weight dropdowns.
 - Active filters appear as removable chips under the toolbar. View, search, filters and paging are URL params (`view`, `q`, `inbox`, `urgency`, `theme`, `role`, `limit`); parameters are validated in `parseQueueParams`.
 - Filter/search changes re-query on the server in a transition: the list dims slightly and a small spinner shows; no full-page loader.
+- The queue pane lives in the layout (`MailFrame` + `MailProvider`) and reads `/api/queue` (same `getQueuePage`), so it stays mounted — scroll, selection and focus — while emails open beside it. Search/filter changes use the History API (no server round trip; an open email is untouched). Live changes to emails/drafts re-read it.
 - Load failure → `ErrorState` with retry. Empty copy is per view ("You’re all caught up"…); "No emails match" is used only when search/filters are active.
 
 **Forms:** a visible label always (use `hideLabel` only when context makes it obvious, such as search). Errors go under the field, not only in a toast.
@@ -244,7 +257,7 @@ Tailwind's default type scale is cleared, so only these exist. Note that `text-s
 |---|---|---|---|
 | Phone | < 640 | Top bar and bottom tab bar | List → full-screen workspace with a **sticky action bar** (safe-area aware) |
 | Tablet | 640–1279 | Collapsible sidebar (icons) | List → full-screen workspace |
-| Desktop | ≥ 1280 | Persistent sidebar | **Split view:** queue list + review workspace side by side |
+| Desktop | ≥ 1280 | Persistent sidebar | **Split view:** queue list + review workspace side by side; the workspace itself goes two-column when it is ≥ 60rem wide |
 
 - One component tree, reflowed. Don't build separate mobile and desktop components.
 - `/emails/[id]` remains the canonical, deep-linkable URL at every tier. WhatsApp links and bookmarks keep working.
@@ -275,8 +288,8 @@ Tailwind's default type scale is cleared, so only these exist. Note that `text-s
 3. ✅ Presentation/logic split (hooks + domain + format)
 4. ✅ Primitives
 5. ✅ Application shell (route-group layout; fixes the duplicated Navbar and the identity flicker)
-6. Review queue — built (list + empty workspace pane; opening an email still uses the legacy detail page)
-7. Review workspace (the queue stays beside the open email)
+6. ✅ Review queue
+7. ✅ Review workspace (the queue stays beside the open email)
 8. Activity
 9. Voice
 10. Login, error, loading, not-found
@@ -319,7 +332,7 @@ Tailwind's default type scale is cleared, so only these exist. Note that `text-s
 - Setting `drafts.status = 'approved'` triggers the real send through the database webhook to n8n. The UI adds confirmation; it never changes the trigger.
 - Post-approval lockdown: approved or sent replies are read-only everywhere.
 - Voice: `voice_send_blocked` (no sending by voice), recording and playback guards (`isRecordingRef`, `playbackSeqRef`), no global gesture listener for the autoplay unlock, and the token-protected routes. The logic lives verbatim in `src/hooks/use-voice-review.ts`; don't refactor it as part of visual work.
-- `DOMPurify` sanitises every rendered `body_html`.
+- `DOMPurify` sanitises every rendered `body_html` (in the browser; it has no DOM on the server). The shadow-root rendering adds isolation on top and never replaces sanitisation.
 - `user-facing-error.ts`: raw errors are never shown to users.
 - Realtime channels are always removed on unmount.
 

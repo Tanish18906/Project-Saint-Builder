@@ -304,6 +304,11 @@
   }
 }
 
+/* Desktop/tablet: toasts rise above the workspace's sticky action bar. */
+:root:has([data-composer-actions]) {
+  --fm-toast-lift: 4rem;
+}
+
 /* Review workspace (components/workspace): one column — header, triage and
    email, then the reply, then context. When the pane itself is wide (a size
    container, so it follows the sidebar too) the reply moves beside the email. */
@@ -315,7 +320,7 @@
   }
   @container (min-width: 60rem) {
     .fm-workspace-grid {
-      grid-template-columns: minmax(0, 1fr) minmax(22rem, 26rem);
+      grid-template-columns: minmax(0, 1fr) minmax(24rem, 28rem);
       grid-template-rows: auto auto 1fr;
       grid-template-areas: "head head" "main reply" "context reply";
     }
@@ -336,8 +341,8 @@
 
 /* ==========================================================================
    LEGACY COMPATIBILITY LAYER — temporary.
-   The pre-2026-09 screens (EmailDetailView, AuditLogView,
-   VoiceEmailView, voice system pages, login, error/not-found/loading) still use
+   The pre-2026-09 screens not yet rebuilt (AuditLogView, VoiceEmailView,
+   voice system pages, login, error/not-found/loading) still use
    the retired token names. They are mapped onto the NEW semantic tokens so those
    screens keep rendering until each is rebuilt. Rules:
      • New code must never use anything in this block.

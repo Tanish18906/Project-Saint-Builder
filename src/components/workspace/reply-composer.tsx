@@ -31,7 +31,6 @@ export function provenanceOf(reply: EmailDraftState): string | null {
   if (isLocked) return draft ? draftTypeLabel(draft.draft_type) : null
   if (wasDiscarded) return 'Manual reply · AI draft discarded'
   if (!draft) return draftText.trim() ? 'Manual reply' : null
-  if (draft.status === 'discarded') return 'AI draft was discarded earlier'
   if (!draft.ai_generated_text) return 'Manual reply'
   return draftText.trim() === draft.ai_generated_text.trim() ? 'AI draft · unedited' : 'AI draft · edited'
 }
@@ -58,6 +57,8 @@ interface ReplyComposerProps {
   afterSend: AfterSend
   textareaRef: React.Ref<HTMLTextAreaElement>
   lockedRef: React.Ref<HTMLDivElement>
+  /** Focus returns here when the send confirmation is cancelled. */
+  sendButtonRef: React.Ref<HTMLButtonElement>
   onSave: () => void
   onRequestSend: () => void
   onRequestDiscard: () => void
@@ -80,6 +81,7 @@ export function ReplyComposer({
   afterSend,
   textareaRef,
   lockedRef,
+  sendButtonRef,
   onSave,
   onRequestSend,
   onRequestDiscard,
@@ -233,7 +235,7 @@ export function ReplyComposer({
         <div
           data-composer-actions=""
           className={cn(
-            'sticky bottom-0 z-10 mt-4 flex items-center gap-2 border-t border-line bg-panel py-3',
+            'sticky bottom-0 z-10 mt-4 flex flex-wrap items-center gap-2 border-t border-line bg-panel py-3',
             '-mx-4 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:-mx-6 sm:px-6',
             '@min-[60rem]:-ml-6 @min-[60rem]:mr-0 @min-[60rem]:pl-6 @min-[60rem]:pr-0'
           )}
@@ -269,6 +271,7 @@ export function ReplyComposer({
             </Tooltip>
             <Tooltip content="Review and send" shortcut={[mod, '↵']}>
               <Button
+                ref={sendButtonRef}
                 variant="primary"
                 leadingIcon={<Send />}
                 onClick={onRequestSend}

@@ -8,11 +8,13 @@ import { cn } from '@/lib/cn'
  * Reading styles for HTML email, written against the design tokens (CSS custom
  * properties inherit into the shadow root). The shadow root is the boundary in
  * both directions: an email's own <style> can't restyle the app, and the app's
- * utility classes can't flatten the email. Replaces the old `prose` classes,
+ * utility classes can't flatten the email. Paint containment keeps
+ * everything inside the email's own box — a `position: fixed` overlay can't
+ * cover the app (or its Approve button). Replaces the old `prose` classes,
  * which never applied (the typography plugin isn't installed).
  */
 const EMAIL_CSS = `
-:host { display: block; }
+:host { display: block; contain: layout paint; position: relative; isolation: isolate; }
 .fm-mail {
   color: var(--fm-fg);
   font-size: 0.9375rem;
@@ -77,6 +79,8 @@ function HtmlBody({ html, fallbackText, className }: { html: string; fallbackTex
       a.setAttribute('target', '_blank')
       a.setAttribute('rel', 'noopener noreferrer')
     })
+    // Forms in email are never submitted from here (no phishing through the workspace).
+    root.querySelectorAll('form').forEach((form) => form.addEventListener('submit', (e) => e.preventDefault()))
     // Rendering into the shadow root happens outside React; mark it done.
     setRendered(true)
   }, [html])

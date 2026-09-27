@@ -43,6 +43,7 @@ export function ReviewWorkspace({ email, draft, triage, events, thread }: Omit<L
   const headingRef = useRef<HTMLHeadingElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const lockedRef = useRef<HTMLDivElement>(null)
+  const sendButtonRef = useRef<HTMLButtonElement>(null)
 
   // New activity for this email (n8n "sent", edits by voice…) re-reads the page.
   useLiveRefresh(`email-activity-${email.id}`, [{ table: 'audit_log', event: 'INSERT', filter: `email_id=eq.${email.id}` }])
@@ -65,9 +66,11 @@ export function ReviewWorkspace({ email, draft, triage, events, thread }: Omit<L
   })
 
   // Make the neighbours instant to open.
+  const nextHref = neighbours.nextId ? mail.hrefFor(neighbours.nextId) : null
+  const prevHref = neighbours.prevId ? mail.hrefFor(neighbours.prevId) : null
   useEffect(() => {
-    for (const id of [neighbours.nextId, neighbours.prevId]) if (id) router.prefetch(mail.hrefFor(id))
-  }, [neighbours.nextId, neighbours.prevId, mail, router])
+    for (const href of [nextHref, prevHref]) if (href) router.prefetch(href)
+  }, [nextHref, prevHref, router])
 
   // If focus was lost on open (e.g. the queue row that had it is now hidden), start at the subject.
   useEffect(() => {
@@ -190,6 +193,7 @@ export function ReviewWorkspace({ email, draft, triage, events, thread }: Omit<L
           afterSend={afterSend}
           textareaRef={textareaRef}
           lockedRef={lockedRef}
+          sendButtonRef={sendButtonRef}
           onSave={save}
           onRequestSend={() => {
             setSendError(null)
@@ -222,10 +226,12 @@ export function ReviewWorkspace({ email, draft, triage, events, thread }: Omit<L
         error={sendError}
         onConfirm={confirmSend}
         onCloseAutoFocus={(e) => {
-          // After a send the button that opened this is gone; land on the result.
-          if (reply.isLocked && lockedRef.current) {
+          // Sent: the button that opened this is gone, so land on the result.
+          // Cancelled: back to the button (the dialog has no Radix trigger to return to).
+          const target = reply.isLocked ? lockedRef.current : sendButtonRef.current
+          if (target) {
             e.preventDefault()
-            lockedRef.current.focus()
+            target.focus()
           }
         }}
       />

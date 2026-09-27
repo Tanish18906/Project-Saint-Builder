@@ -35,12 +35,30 @@ export function QueueList({ items, view, label, hasMore, onShowMore, loadingMore
   const selectedIndex = selectedId ? items.findIndex((i) => i.id === selectedId) : -1
 
   // The open email becomes the roving-focus row whenever it changes.
+  // Closing an email makes its row the current one, so focus can return to it.
   const [syncedSelection, setSyncedSelection] = useState<string | null>(null)
+  // A new object per close, so closing the same email twice still returns focus.
+  const [returnTo, setReturnTo] = useState<{ id: string } | null>(null)
   if (selectedId !== syncedSelection) {
     setSyncedSelection(selectedId)
     if (selectedIndex >= 0) setActive(selectedIndex)
+    if (!selectedId && syncedSelection) {
+      const closed = items.findIndex((i) => i.id === syncedSelection)
+      if (closed >= 0) setActive(closed)
+      setReturnTo({ id: syncedSelection })
+    }
   }
   const activeIndex = Math.min(active, Math.max(items.length - 1, 0))
+
+  // …and does, when the workspace that had focus has gone (e.g. Esc, Close).
+  useEffect(() => {
+    if (!returnTo) return
+    const lost = !document.activeElement || document.activeElement === document.body
+    const row = rowRefs.current[items.findIndex((i) => i.id === returnTo.id)]
+    if (lost && row) row.focus({ preventScroll: false })
+    // Only when the email is closed, not on later list refreshes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [returnTo])
 
   // Keep the open row visible, and move keyboard focus with it if focus is in the list.
   useEffect(() => {
