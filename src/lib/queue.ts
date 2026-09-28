@@ -3,17 +3,17 @@
 // Pure/isomorphic: the read path runs in the /api/queue route handler; the URL
 // helpers run in the browser. Classification always goes
 // through getQueueState (lib/domain.ts); this file never re-defines what
-// "needs review", "urgent" or "handled" mean.
+// "needs review", "urgent" or "handled" mean. View filtering, counting and
+// paging use the `email_queue` SQL view, which mirrors getQueueState, so the
+// queue is never truncated by PostgREST's max_rows cap.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   THEME_OPTIONS,
   URGENCY_OPTIONS,
   ROLE_OPTIONS,
-  draftStatusOf,
   getQueueState,
   getReviewStatus,
-  urgencyRank,
   type AccountRecord,
   type QueueView,
   type ReviewStatus,
@@ -137,14 +137,6 @@ export interface QueueResult {
   error: string | null
 }
 
-interface CandidateRow {
-  id: string
-  received_at: string
-  urgency: string | null
-  status: string
-  drafts: { status: string } | { status: string }[] | null
-}
-
 interface DetailRow {
   id: string
   from_name: string | null
@@ -179,8 +171,15 @@ export async function getQueuePage(supabase: SupabaseClient, params: QueueParams
   }
   const accounts = (accountsRes.data ?? []) as AccountRecord[]
 
-  // 2. Candidates — light columns only, simple filters in SQL.
-  let candidates = supabase.from('emails').select('id, received_at, urgency, status, drafts(status)')
+  // 2. One query: view, filters, ordering and paging all in SQL; `count` is the
+  //    full match total, independent of the page size. Details for the visible
+  //    page come back in the same response (body trimmed to a preview below).
+  let candidates = supabase
+    .from('email_queue')
+    .select(
+      'id, from_name, from_address, subject, body_text, received_at, theme, urgency, routed_roles, status, accounts(email_address), drafts(status, edited_text, ai_generated_text)',
+      { count: 'exact' }
+    )
 
   if (params.inbox) {
     const account = accounts.find((a) => a.email_address.split('@')[0].toLowerCase() === params.inbox)
@@ -198,52 +197,28 @@ export async function getQueuePage(supabase: SupabaseClient, params: QueueParams
     )
   }
 
-  const candRes = await candidates.order('received_at', { ascending: false })
+  // 3. The view's flags are getQueueState computed in SQL.
+  if (params.view === 'review') candidates = candidates.eq('needs_review', true)
+  else if (params.view === 'urgent') candidates = candidates.eq('is_urgent_open', true)
+  else if (params.view === 'handled') candidates = candidates.eq('is_handled', true)
+
+  // Work views: most urgent first, newest within each level. Mail views: newest first.
+  // `id` breaks ties so paging is stable.
+  if (params.view === 'review' || params.view === 'urgent') candidates = candidates.order('urgency_rank', { ascending: true })
+  const candRes = await candidates
+    .order('received_at', { ascending: false })
+    .order('id', { ascending: true })
+    .range(0, params.limit - 1)
   if (candRes.error) {
     console.error('[Queue] candidates:', candRes.error.message)
     return { items: [], total: 0, hasMore: false, accounts, error: LOAD_ERROR }
   }
 
-  // 3. Classify with the canonical rule, then order for the view.
-  const inView = (candRes.data as CandidateRow[]).filter((row) => {
-    const state = getQueueState(row, draftStatusOf(row.drafts))
-    switch (params.view) {
-      case 'review':
-        return state.needsReview
-      case 'urgent':
-        return state.isUrgentOpen
-      case 'handled':
-        return state.isHandled
-      default:
-        return true
-    }
-  })
+  const rows = (candRes.data ?? []) as unknown as DetailRow[]
+  const total = candRes.count ?? rows.length
 
-  // Work views: most urgent first, newest within each level. Mail views: newest first.
-  if (params.view === 'review' || params.view === 'urgent') {
-    inView.sort((a, b) => urgencyRank(a.urgency) - urgencyRank(b.urgency) || b.received_at.localeCompare(a.received_at))
-  }
-
-  const pageIds = inView.slice(0, params.limit).map((r) => r.id)
-  if (pageIds.length === 0) return { items: [], total: inView.length, hasMore: false, accounts, error: null }
-
-  // 4. Details for the visible page only (body trimmed to a preview server-side).
-  const detailRes = await supabase
-    .from('emails')
-    .select(
-      'id, from_name, from_address, subject, body_text, received_at, theme, urgency, routed_roles, status, accounts(email_address), drafts(status, edited_text, ai_generated_text)'
-    )
-    .in('id', pageIds)
-  if (detailRes.error) {
-    console.error('[Queue] details:', detailRes.error.message)
-    return { items: [], total: 0, hasMore: false, accounts, error: LOAD_ERROR }
-  }
-
-  const byId = new Map((detailRes.data as unknown as DetailRow[]).map((r) => [r.id, r]))
   const items: QueueItem[] = []
-  for (const id of pageIds) {
-    const row = byId.get(id)
-    if (!row) continue
+  for (const row of rows) {
     const draft = Array.isArray(row.drafts) ? (row.drafts[0] ?? null) : row.drafts
     const state = getQueueState(row, draft?.status ?? null)
     items.push({
@@ -263,7 +238,7 @@ export async function getQueuePage(supabase: SupabaseClient, params: QueueParams
     })
   }
 
-  return { items, total: inView.length, hasMore: inView.length > pageIds.length, accounts, error: null }
+  return { items, total, hasMore: total > rows.length, accounts, error: null }
 }
 
 /** Plain-language count for the header, e.g. "12 waiting". */

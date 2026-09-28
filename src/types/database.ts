@@ -242,7 +242,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      /** Queue classification per email. Mirrors getQueueState() in src/lib/domain.ts. */
+      email_queue: {
+        Row: {
+          account_id: string
+          body_text: string | null
+          draft_status: string | null
+          from_address: string
+          from_name: string | null
+          id: string
+          is_handled: boolean
+          is_urgent_open: boolean
+          needs_review: boolean
+          received_at: string
+          routed_roles: string[] | null
+          status: string
+          subject: string | null
+          theme: string | null
+          urgency: string | null
+          urgency_rank: number
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

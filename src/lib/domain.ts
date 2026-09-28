@@ -167,6 +167,8 @@ export function draftStatusOf(drafts: DraftRelation): string | null {
   return drafts.status ?? null
 }
 
+// Mirrored in SQL by the `email_queue` view (supabase/migrations/…_email_queue_view.sql),
+// which the queue and sidebar counts filter on. Change both together.
 export function getQueueState(email: { status: string; urgency: string | null }, draftStatus: string | null) {
   const emailStatus = (email.status || '').toLowerCase()
   const isHandled =
