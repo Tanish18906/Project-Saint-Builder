@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
-import { Navbar } from '@/components/Navbar'
-import { AuditLogView } from '@/components/AuditLogView'
+import { AppShell } from '@/components/shell'
+import { AuditLogView, type AuditLogItem } from '@/components/AuditLogView'
 
 export const dynamic = 'force-dynamic'
 
-async function fetchAuditLogsWithRetry(supabase: any) {
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+async function fetchAuditLogsWithRetry(supabase: SupabaseServerClient) {
   let res = await supabase
     .from('audit_log')
     .select(`
@@ -66,15 +68,11 @@ export default async function AuditLogPage() {
   }
 
   const user = userData?.user
-  const logs = auditLogsData || []
+  const logs = (auditLogsData || []) as unknown as AuditLogItem[]
 
   return (
-    <div className="min-h-screen bg-[#f5f1e8] text-[#1c1a17]">
-      <Navbar userEmail={user?.email} />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
-        <AuditLogView initialLogs={logs as any} />
-      </main>
-    </div>
+    <AppShell userEmail={user?.email} currentPath="/audit-log">
+      <AuditLogView initialLogs={logs} />
+    </AppShell>
   )
 }

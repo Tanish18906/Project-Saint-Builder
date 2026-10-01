@@ -17,22 +17,37 @@ interface ThemeBadgeProps {
   className?: string
 }
 
+const THEME_LABELS: Record<string, string> = {
+  accounts: 'Accounts',
+  orders: 'Orders',
+  finance: 'Finance',
+  suppliers: 'Suppliers',
+  promotions: 'Promotions',
+  nph_jobs: 'NPH Jobs',
+  meetings_appointments: 'Meetings & Appointments',
+  invoices: 'Invoices',
+  certificates: 'Certificates',
+}
+
 export function ThemeBadge({ theme, className = '' }: ThemeBadgeProps) {
   if (!theme) {
     return (
       <span
-        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#ece7db] text-[#4a453c] border border-[#e2dbcd] ${className}`}
+        className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[var(--surface-subtle)] text-[var(--text-tertiary)] border border-[var(--border-subtle)] select-none ${className}`}
       >
         Unclassified
       </span>
     )
   }
 
+  const normalized = theme.toLowerCase().trim()
+  const label = THEME_LABELS[normalized] || theme.replace(/_/g, ' ')
+
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#ece7db] text-[#4a453c] border border-[#e2dbcd] capitalize ${className}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[var(--surface-subtle)] text-[var(--text-secondary)] border border-[var(--border-subtle)] capitalize select-none ${className}`}
     >
-      {theme.replace(/_/g, ' ')}
+      {label}
     </span>
   )
 }

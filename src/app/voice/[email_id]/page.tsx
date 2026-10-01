@@ -2,8 +2,9 @@ import React from 'react'
 import Link from 'next/link'
 import { verifyVoiceToken } from '@/lib/voice-token'
 import { createClient } from '@/lib/supabase/server'
-import { VoiceEmailView } from '@/components/VoiceEmailView'
+import { VoiceEmailView } from '@/components/voice'
 import { AlertCircle, ShieldAlert, ArrowRight, RotateCcw, Clock } from 'lucide-react'
+import type { VoiceEmailItem, VoiceDraftItem } from '@/components/voice/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,7 +20,7 @@ interface VoicePageProps {
 /**
  * Timeout helper to prevent hanging queries on slow connections
  */
-function withTimeout<T = any>(promise: PromiseLike<T> | Promise<T>, timeoutMs = 5000): Promise<T> {
+function withTimeout<T>(promise: PromiseLike<T> | Promise<T>, timeoutMs = 12000): Promise<T> {
   return Promise.race([
     Promise.resolve(promise) as Promise<T>,
     new Promise<T>((_, reject) =>
@@ -28,7 +29,14 @@ function withTimeout<T = any>(promise: PromiseLike<T> | Promise<T>, timeoutMs = 
   ])
 }
 
-async function fetchVoiceEmailData(supabase: any, emailId: string) {
+async function fetchVoiceEmailData(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  emailId: string
+): Promise<{
+  email: VoiceEmailItem | null
+  draft: VoiceDraftItem | null
+  approverName: string | null
+}> {
   // Concurrently fetch email and draft in parallel with timeout resilience
   const [emailRes, draftRes] = await Promise.all([
     withTimeout(
@@ -37,7 +45,7 @@ async function fetchVoiceEmailData(supabase: any, emailId: string) {
         .select('*, accounts(id, email_address, display_name)')
         .eq('id', emailId)
         .maybeSingle(),
-      5000
+      12000
     ),
     withTimeout(
       supabase
@@ -46,12 +54,12 @@ async function fetchVoiceEmailData(supabase: any, emailId: string) {
         .eq('email_id', emailId)
         .order('created_at', { ascending: false })
         .limit(1),
-      5000
+      12000
     ),
   ])
 
-  let email = emailRes?.data || null
-  let draft = (Array.isArray(draftRes?.data) ? draftRes.data[0] : draftRes?.data) || null
+  let email = (emailRes?.data as VoiceEmailItem) || null
+  let draft = ((Array.isArray(draftRes?.data) ? draftRes.data[0] : draftRes?.data) as VoiceDraftItem) || null
 
   // If email was not found, retry once quickly (250ms) to guard against replication lag
   if (!email) {
@@ -62,9 +70,9 @@ async function fetchVoiceEmailData(supabase: any, emailId: string) {
         .select('*, accounts(id, email_address, display_name)')
         .eq('id', emailId)
         .maybeSingle(),
-      3000
+      8000
     )
-    email = retryEmailRes?.data || null
+    email = (retryEmailRes?.data as VoiceEmailItem) || null
   }
 
   // If draft was not found (e.g. OpenAI drafting in Workflow 1 is finishing), retry after 400ms
@@ -77,9 +85,9 @@ async function fetchVoiceEmailData(supabase: any, emailId: string) {
         .eq('email_id', emailId)
         .order('created_at', { ascending: false })
         .limit(1),
-      3000
+      8000
     )
-    draft = (Array.isArray(retryDraftRes?.data) ? retryDraftRes.data[0] : retryDraftRes?.data) || null
+    draft = ((Array.isArray(retryDraftRes?.data) ? retryDraftRes.data[0] : retryDraftRes?.data) as VoiceDraftItem) || null
   }
 
   // Fetch approver name if approved_by exists on draft
@@ -88,10 +96,10 @@ async function fetchVoiceEmailData(supabase: any, emailId: string) {
     try {
       const { data: approverUser } = await withTimeout(
         supabase.from('users').select('name').eq('id', draft.approved_by).maybeSingle(),
-        3000
+        6000
       )
       if (approverUser?.name) {
-        approverName = approverUser.name
+        approverName = approverUser.name as string
       }
     } catch {
       approverName = null
@@ -111,7 +119,7 @@ export default async function VoicePage({ params, searchParams }: VoicePageProps
 
     emailId = (resolvedParams?.email_id || '').trim()
     token = resolvedSearchParams?.token
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[VoicePage] Error resolving route parameters:', err)
   }
 
@@ -123,24 +131,24 @@ export default async function VoicePage({ params, searchParams }: VoicePageProps
     const isMismatch = verification.error === 'email_mismatch'
 
     return (
-      <div className="min-h-screen bg-[#f5f1e8] flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl border border-[#e8e2d4] p-6 shadow-sm text-center space-y-4">
-          <div className="w-14 h-14 bg-red-100 text-red-700 rounded-full mx-auto flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--app-bg)] flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl border border-[var(--border-subtle)] p-6 shadow-sm text-center space-y-4">
+          <div className="w-14 h-14 bg-red-100 text-red-700 rounded-full mx-auto flex items-center justify-center shadow-inner">
             <ShieldAlert className="w-7 h-7" />
           </div>
-          <div className="space-y-1">
-            <h1 className="text-lg font-bold text-[#1c1a17]">
+          <div className="space-y-1.5">
+            <h1 className="text-lg font-bold text-[var(--text-primary)]">
               {isExpired ? 'Voice Link Expired' : 'Invalid Voice Link'}
             </h1>
-            <p className="text-xs text-[#6b6559] leading-relaxed">
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
               {isExpired
-                ? 'This voice review link has expired (24h security validity period). Please access this message from the desktop review dashboard or request a new alert.'
+                ? 'This voice review link has expired (24h security validity period). Please access this message from the Foreman review dashboard or request a new alert.'
                 : isMismatch
-                ? 'This token does not match the requested email. Please use the direct link received in your WhatsApp alert.'
+                ? 'This token does not match the requested email. Please use the direct link received in your alert notification.'
                 : 'This voice link is invalid or missing required security credentials. For security, please log in to the Foreman review dashboard.'}
             </p>
             {verification.errorMessage && (
-              <p className="text-[11px] text-[#6b6559]/70 font-mono pt-1">
+              <p className="text-[11px] text-[var(--text-tertiary)] font-mono pt-1">
                 Reason: {verification.errorMessage}
               </p>
             )}
@@ -148,7 +156,7 @@ export default async function VoicePage({ params, searchParams }: VoicePageProps
           <div className="pt-2 space-y-2">
             <Link
               href="/login"
-              className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-[#1c1a17] hover:bg-[#2a2723] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-[var(--brand)] hover:bg-[var(--brand-light)] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
             >
               <span>Go to Dashboard Login</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -160,70 +168,45 @@ export default async function VoicePage({ params, searchParams }: VoicePageProps
   }
 
   // 2. Fetch Email and Draft data with timeout and error fallback
+  let emailData: {
+    email: VoiceEmailItem | null
+    draft: VoiceDraftItem | null
+    approverName: string | null
+  } | null = null
+  let dbError = false
+
   try {
     const supabase = await createClient()
-    const { email, draft, approverName } = await fetchVoiceEmailData(supabase, emailId)
+    emailData = await fetchVoiceEmailData(supabase, emailId)
+  } catch (err: unknown) {
+    console.error('[VoicePage] Database query exception:', err)
+    dbError = true
+  }
 
-    if (!email) {
-      return (
-        <div className="min-h-screen bg-[#f5f1e8] flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl border border-[#e8e2d4] p-6 shadow-sm text-center space-y-4">
-            <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-full mx-auto flex items-center justify-center">
-              <AlertCircle className="w-7 h-7" />
-            </div>
-            <div className="space-y-1">
-              <h1 className="text-lg font-bold text-[#1c1a17]">Email Not Found</h1>
-              <p className="text-xs text-[#6b6559] leading-relaxed">
-                The email associated with ID <span className="font-mono text-[#1c1a17]">{emailId.slice(0, 8)}...</span> could not be found in the database.
-              </p>
-            </div>
-            <div className="pt-2">
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-[#1c1a17] hover:bg-[#2a2723] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-              >
-                <span>Go to Dashboard</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
+  if (dbError) {
     return (
-      <VoiceEmailView
-        email={email}
-        draft={draft}
-        approverName={approverName}
-        token={token!}
-      />
-    )
-  } catch (dbErr: any) {
-    console.error('[VoicePage] Database query exception:', dbErr)
-    return (
-      <div className="min-h-screen bg-[#f5f1e8] flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl border border-[#e8e2d4] p-6 shadow-sm text-center space-y-4">
-          <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-full mx-auto flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--app-bg)] flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl border border-[var(--border-subtle)] p-6 shadow-sm text-center space-y-4">
+          <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-full mx-auto flex items-center justify-center shadow-inner">
             <Clock className="w-7 h-7" />
           </div>
-          <div className="space-y-1">
-            <h1 className="text-lg font-bold text-[#1c1a17]">Connection Timeout</h1>
-            <p className="text-xs text-[#6b6559] leading-relaxed">
+          <div className="space-y-1.5">
+            <h1 className="text-lg font-bold text-[var(--text-primary)]">Connection Timeout</h1>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
               We experienced a temporary delay retrieving this email. Please check your network connection and tap below to retry.
             </p>
           </div>
           <div className="pt-2 space-y-2">
             <Link
               href={`/voice/${emailId}?token=${encodeURIComponent(token || '')}`}
-              className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-[#1c1a17] hover:bg-[#2a2723] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-[var(--brand)] hover:bg-[var(--brand-light)] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Retry Loading Voice Page</span>
             </Link>
             <Link
               href="/login"
-              className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-white hover:bg-[#f5f1e8] border border-[#e8e2d4] text-[#1c1a17] text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-white hover:bg-[var(--surface-subtle)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-semibold rounded-xl transition-colors cursor-pointer"
             >
               <span>Go to Dashboard</span>
             </Link>
@@ -232,4 +215,40 @@ export default async function VoicePage({ params, searchParams }: VoicePageProps
       </div>
     )
   }
+
+  if (!emailData?.email) {
+    return (
+      <div className="min-h-screen bg-[var(--app-bg)] flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl border border-[var(--border-subtle)] p-6 shadow-sm text-center space-y-4">
+          <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-full mx-auto flex items-center justify-center shadow-inner">
+            <AlertCircle className="w-7 h-7" />
+          </div>
+          <div className="space-y-1.5">
+            <h1 className="text-lg font-bold text-[var(--text-primary)]">Email Not Found</h1>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              The email associated with ID <span className="font-mono text-[var(--text-primary)]">{emailId.slice(0, 8)}...</span> could not be found in the database.
+            </p>
+          </div>
+          <div className="pt-2">
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-[var(--brand)] hover:bg-[var(--brand-light)] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+            >
+              <span>Go to Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <VoiceEmailView
+      email={emailData.email}
+      draft={emailData.draft}
+      approverName={emailData.approverName}
+      token={token!}
+    />
+  )
 }

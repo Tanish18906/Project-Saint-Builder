@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { Navbar } from '@/components/Navbar'
-import { EmailDetailView } from '@/components/EmailDetailView'
+import { AppShell } from '@/components/shell'
+import { EmailDetailView, type EmailRecord } from '@/components/EmailDetailView'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +9,9 @@ interface EmailDetailPageProps {
   params: Promise<{ id: string }>
 }
 
-async function fetchEmailDetailWithRetry(supabase: any, id: string) {
+type ServerSupabaseClient = Awaited<ReturnType<typeof createClient>>
+
+async function fetchEmailDetailWithRetry(supabase: ServerSupabaseClient, id: string) {
   let res = await supabase
     .from('emails')
     .select(`
@@ -91,21 +93,18 @@ export default async function EmailDetailPage({ params }: EmailDetailPageProps) 
         classificationAudit = null
       }
     } else if (typeof rawDetails === 'object') {
-      classificationAudit = rawDetails as any
+      classificationAudit = rawDetails as unknown as typeof classificationAudit
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f1e8] text-[#1c1a17]">
-      <Navbar userEmail={user?.email} />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
-        <EmailDetailView
-          email={email as any}
-          draft={draft}
-          classificationAudit={classificationAudit}
-        />
-      </main>
-    </div>
+    <AppShell userEmail={user?.email} currentPath="/emails">
+      <EmailDetailView
+        email={email as unknown as EmailRecord}
+        draft={draft}
+        classificationAudit={classificationAudit}
+      />
+    </AppShell>
   )
 }
+

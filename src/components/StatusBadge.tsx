@@ -21,45 +21,45 @@ const STATUS_CONFIG: Record<
 > = {
   new: {
     label: 'New',
-    bg: 'bg-[#f5f1e8]',
-    text: 'text-[#6b6559]',
-    border: 'border-[#e8e2d4]',
+    bg: 'bg-[var(--surface-subtle)]',
+    text: 'text-[var(--text-secondary)]',
+    border: 'border-[var(--border-subtle)]',
   },
   classified: {
     label: 'Classified',
-    bg: 'bg-[#f5f1e8]',
-    text: 'text-[#6b6559]',
-    border: 'border-[#e8e2d4]',
+    bg: 'bg-[var(--surface-subtle)]',
+    text: 'text-[var(--text-secondary)]',
+    border: 'border-[var(--border-subtle)]',
   },
   drafted: {
     label: 'Drafted',
-    bg: 'bg-[#f5f1e8]',
-    text: 'text-[#6b6559]',
-    border: 'border-[#e8e2d4]',
+    bg: 'bg-[var(--brand-subtle)]',
+    text: 'text-[var(--brand-text)] font-medium',
+    border: 'border-[var(--brand-subtle)]',
   },
   pending: {
     label: 'Pending review',
-    bg: 'bg-[#f5f1e8]',
-    text: 'text-[#6b6559]',
-    border: 'border-[#e8e2d4]',
+    bg: 'bg-amber-50',
+    text: 'text-amber-800 font-medium',
+    border: 'border-amber-200',
   },
   approved: {
     label: 'Approved',
-    bg: 'bg-emerald-50/70',
-    text: 'text-[#2f6b3f] font-semibold',
-    border: 'border-emerald-200/80',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-800 font-semibold',
+    border: 'border-emerald-200',
   },
   sent: {
     label: 'Sent',
-    bg: 'bg-[#1c1a17]',
-    text: 'text-[#f5f1e8] font-medium',
-    border: 'border-[#1c1a17]',
+    bg: 'bg-[var(--text-primary)]',
+    text: 'text-white font-medium',
+    border: 'border-[var(--text-primary)]',
   },
   discarded: {
     label: 'Discarded',
-    bg: 'bg-[#f5f1e8]',
-    text: 'text-[#6b6559]',
-    border: 'border-[#e8e2d4]',
+    bg: 'bg-[var(--surface-subtle)]',
+    text: 'text-[var(--text-tertiary)]',
+    border: 'border-[var(--border-subtle)]',
   },
 }
 
@@ -68,14 +68,14 @@ export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
 
   const config = STATUS_CONFIG[status.toLowerCase()] || {
     label: status.replace(/_/g, ' '),
-    bg: 'bg-[#f5f1e8]',
-    text: 'text-[#6b6559]',
-    border: 'border-[#e8e2d4]',
+    bg: 'bg-[var(--surface-subtle)]',
+    text: 'text-[var(--text-secondary)]',
+    border: 'border-[var(--border-subtle)]',
   }
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${config.bg} ${config.text} ${config.border} ${className}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border select-none ${config.bg} ${config.text} ${config.border} ${className}`}
     >
       {config.label}
     </span>
