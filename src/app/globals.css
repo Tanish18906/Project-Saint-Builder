@@ -1,6 +1,79 @@
 @import "tailwindcss";
 
+@theme {
+  --color-app-bg: #F7F8FA;
+  --color-surface: #FFFFFF;
+  --color-surface-subtle: #F1F3F5;
+  --color-surface-raised: #FFFFFF;
+  --color-text-primary: #17191C;
+  --color-text-secondary: #5E6470;
+  --color-text-tertiary: #8B92A0;
+  --color-border-subtle: #E5E7EB;
+  --color-border-strong: #D1D5DB;
+  --color-brand: #1E3A2F;
+  --color-brand-light: #284E3F;
+  --color-brand-subtle: #E8EFEA;
+  --color-brand-text: #1E3A2F;
+
+  --color-urgency-urgent: #b91c1c;
+  --color-urgency-urgent-bg: #fef2f2;
+  --color-urgency-urgent-border: #fecaca;
+  --color-urgency-priority: #c2560c;
+  --color-urgency-priority-bg: #fff7ed;
+  --color-urgency-priority-border: #fed7aa;
+  --color-urgency-routine: #5E6470;
+  --color-urgency-routine-bg: #F1F3F5;
+  --color-urgency-routine-border: #E5E7EB;
+  --color-urgency-read-later: #8B92A0;
+  --color-urgency-read-later-bg: #F8F9FA;
+  --color-urgency-read-later-border: #E5E7EB;
+}
+
 :root {
+  /* Foreman Design Foundation - Phase 1 Tokens */
+  --app-bg: #F7F8FA;
+  --surface: #FFFFFF;
+  --surface-subtle: #F1F3F5;
+  --surface-raised: #FFFFFF;
+  --text-primary: #17191C;
+  --text-secondary: #5E6470;
+  --text-tertiary: #8B92A0;
+  --border-subtle: #E5E7EB;
+  --border-strong: #D1D5DB;
+  --brand: #1E3A2F;
+  --brand-light: #284E3F;
+  --brand-subtle: #E8EFEA;
+  --brand-text: #1E3A2F;
+
+  /* Urgency tokens */
+  --urgency-urgent: #b91c1c;
+  --urgency-urgent-bg: #fef2f2;
+  --urgency-urgent-border: #fecaca;
+  --urgency-priority: #c2560c;
+  --urgency-priority-bg: #fff7ed;
+  --urgency-priority-border: #fed7aa;
+  --urgency-routine: #5E6470;
+  --urgency-routine-bg: #F1F3F5;
+  --urgency-routine-border: #E5E7EB;
+  --urgency-read-later: #8B92A0;
+  --urgency-read-later-bg: #F8F9FA;
+  --urgency-read-later-border: #E5E7EB;
+
+  /* Status Tokens */
+  --status-sent-bg: #17191C;
+  --status-sent-text: #FFFFFF;
+  --status-approved-text: #2f6b3f;
+  --status-approved-bg: #f0fdf4;
+  --status-approved-border: #bbf7d0;
+  --status-pending-text: #5E6470;
+  --status-discarded-text: #8B92A0;
+
+  /* Category / Theme Neutral Tokens */
+  --tag-neutral-bg: #F1F3F5;
+  --tag-neutral-border: #E5E7EB;
+  --tag-neutral-text: #5E6470;
+
+  /* Preserved properties for Voice portal and backward compatibility */
   --foreman-charcoal: #1c1a17;
   --foreman-charcoal-light: #2a2723;
   --foreman-cream: #f5f1e8;
@@ -8,39 +81,10 @@
   --foreman-white: #ffffff;
   --foreman-text-primary: #1c1a17;
   --foreman-text-secondary: #6b6559;
-
-  /* Voice mic button — listening-state accent. Deliberately not urgency-red (that hue is
-     reserved for hazard signaling) and not the amber already used for the speaking state.
-     Muted/desaturated per the "restrained color use" rule for any new accent. */
   --voice-listening-accent: #4d7480;
-
-  /* Urgency — the only place color carries real signal, like a hazard marker on site */
-  --urgency-urgent: #b91c1c;
-  --urgency-urgent-bg: #fef2f2;
-  --urgency-urgent-border: #fecaca;
-  --urgency-priority: #c2560c;
-  --urgency-priority-bg: #fff7ed;
-  --urgency-priority-border: #fed7aa;
-
-  /* Category neutral styling — category conveyed by text label, not hue */
-  --tag-neutral-bg: #ece7db;
-  --tag-neutral-border: #e2dbcd;
-  --tag-neutral-text: #4a453c;
-
-  /* Status — weight/style does the work color used to do */
-  --status-sent-bg: var(--foreman-charcoal);
-  --status-sent-text: var(--foreman-cream);
-  --status-approved-text: #2f6b3f;
-  --status-approved-bg: #f0fdf4;
-  --status-approved-border: #bbf7d0;
-  --status-pending-text: var(--foreman-text-secondary);
-  --status-discarded-text: var(--foreman-text-secondary);
 }
 
-/* Voice page Tier 2 activity indicator — one shared bar-equalizer animation,
-   recolored per mode (speaking = amber, listening = --voice-listening-accent)
-   rather than two separate components, per the UX spec's "one component, two
-   visual modes" requirement. */
+/* Voice page Tier 2 activity indicator animation */
 @keyframes voice-eq {
   0%,
   100% {
@@ -51,11 +95,108 @@
   }
 }
 
+/* Tabular numerals utility */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Focus ring utility */
+.focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--brand);
+}
+
 body {
-  background-color: var(--foreman-cream);
-  color: var(--foreman-text-primary);
+  background-color: var(--app-bg);
+  color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
 }
+
+/* ==========================================================================
+   Voice Redesign Phase 7-8: Voice Orb & Live Artifact Keyframes
+   ========================================================================== */
+
+/* Calm Breathing for Idle Voice Orb */
+@keyframes orb-breathe {
+  0%, 100% {
+    transform: scale(0.98);
+    box-shadow: 0 0 20px 2px rgba(28, 26, 23, 0.08);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 32px 8px rgba(30, 58, 47, 0.16);
+  }
+}
+
+/* Responsive Pulse for Listening Voice Orb */
+@keyframes orb-listening-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(77, 116, 128, 0.5), 0 0 24px 4px rgba(77, 116, 128, 0.3);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 16px rgba(77, 116, 128, 0), 0 0 36px 10px rgba(77, 116, 128, 0.4);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(77, 116, 128, 0), 0 0 24px 4px rgba(77, 116, 128, 0.3);
+  }
+}
+
+/* Restrained Orbital Rotation for Thinking */
+@keyframes orb-thinking-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Fluid Acoustic Dilation for Speaking */
+@keyframes orb-speaking-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px 4px rgba(217, 119, 6, 0.25);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 36px 12px rgba(217, 119, 6, 0.45);
+  }
+}
+
+/* Subtle Shimmer for AI Draft live updates */
+@keyframes draft-update-highlight {
+  0% {
+    background-color: rgba(30, 58, 47, 0.12);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-orb-breathe {
+  animation: orb-breathe 3.5s ease-in-out infinite;
+}
+
+.animate-orb-listening {
+  animation: orb-listening-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-orb-thinking {
+  animation: orb-thinking-spin 2.2s linear infinite;
+}
+
+.animate-orb-speaking {
+  animation: orb-speaking-pulse 1.6s ease-in-out infinite;
+}
+
+.animate-draft-update {
+  animation: draft-update-highlight 1.2s ease-out forwards;
+}
+
