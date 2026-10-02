@@ -45,6 +45,8 @@ export function VoiceEmailView({
 
   // Audio Playback & Recording References
   const activeAudioRef = useRef<HTMLAudioElement | null>(null)
+  const activeBlobUrlRef = useRef<string | null>(null)
+  const mediaStreamRef = useRef<MediaStream | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const isRecordingRef = useRef<boolean>(false)
@@ -57,11 +59,35 @@ export function VoiceEmailView({
   // Keep refs synchronized for async voice handler access
   useEffect(() => {
     draftTextRef.current = draftText
-  }, [draftText])
-
-  useEffect(() => {
     draftRef.current = draft
-  }, [draft])
+  }, [draftText, draft])
+
+  // Unmount hardware & resource cleanup
+  useEffect(() => {
+    return () => {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop())
+        mediaStreamRef.current = null
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try {
+          mediaRecorderRef.current.stop()
+        } catch {}
+      }
+      if (activeAudioRef.current) {
+        activeAudioRef.current.pause()
+        activeAudioRef.current.src = ''
+        activeAudioRef.current = null
+      }
+      if (activeBlobUrlRef.current) {
+        URL.revokeObjectURL(activeBlobUrlRef.current)
+        activeBlobUrlRef.current = null
+      }
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [])
 
   const [isPending, startTransition] = useTransition()
 
@@ -120,6 +146,10 @@ export function VoiceEmailView({
       activeAudioRef.current.pause()
       activeAudioRef.current.currentTime = 0
       activeAudioRef.current = null
+    }
+    if (activeBlobUrlRef.current) {
+      URL.revokeObjectURL(activeBlobUrlRef.current)
+      activeBlobUrlRef.current = null
     }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel()
@@ -195,13 +225,23 @@ export function VoiceEmailView({
         const blob = await res.blob()
         if (playbackSeqRef.current !== currentSeq) return
 
+        if (activeBlobUrlRef.current) {
+          URL.revokeObjectURL(activeBlobUrlRef.current)
+          activeBlobUrlRef.current = null
+        }
+
         const audioUrl = URL.createObjectURL(blob)
+        activeBlobUrlRef.current = audioUrl
         const audio = new Audio(audioUrl)
         activeAudioRef.current = audio
 
         setUiState('speaking')
 
         audio.onended = () => {
+          if (activeBlobUrlRef.current) {
+            URL.revokeObjectURL(activeBlobUrlRef.current)
+            activeBlobUrlRef.current = null
+          }
           if (playbackSeqRef.current === currentSeq) {
             setUiState('idle')
             activeAudioRef.current = null
@@ -210,6 +250,10 @@ export function VoiceEmailView({
         }
 
         audio.onerror = () => {
+          if (activeBlobUrlRef.current) {
+            URL.revokeObjectURL(activeBlobUrlRef.current)
+            activeBlobUrlRef.current = null
+          }
           if (playbackSeqRef.current === currentSeq) {
             playBrowserTTSFallback(textToSpeak, currentSeq, onEndCallback)
           }
@@ -587,6 +631,7 @@ export function VoiceEmailView({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaStreamRef.current = stream
       audioChunksRef.current = []
 
       const mediaRecorder = new MediaRecorder(stream)
@@ -600,6 +645,9 @@ export function VoiceEmailView({
 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop())
+        if (mediaStreamRef.current === stream) {
+          mediaStreamRef.current = null
+        }
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
         if (audioBlob.size > 1000) {
           await handleProcessAudioBlob(audioBlob)
@@ -615,6 +663,10 @@ export function VoiceEmailView({
       setMicPermissionDenied(false)
       setFeedback({ type: 'info', message: 'Listening... Release when finished.' })
     } catch {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop())
+        mediaStreamRef.current = null
+      }
       isStartingRecordingRef.current = false
       isRecordingRef.current = false
       setMicPermissionDenied(true)
@@ -739,6 +791,18 @@ export function VoiceEmailView({
     }
   }, [])
 
+  const handleOpenApprovalModal = useCallback(() => setIsApprovalModalOpen(true), [])
+  const handleCloseApprovalModal = useCallback(() => setIsApprovalModalOpen(false), [])
+  const handleOpenDiscardModal = useCallback(() => setIsDiscardModalOpen(true), [])
+  const handleCloseDiscardModal = useCallback(() => setIsDiscardModalOpen(false), [])
+  const handleChangeDraftText = useCallback((newText: string) => {
+    setDraftText(newText)
+  }, [])
+  const handleAutoplayResume = useCallback(() => {
+    setAutoplayBlocked(false)
+    void playTTS(buildIntroText(), handleIntroPlaybackEnd)
+  }, [buildIntroText, handleIntroPlaybackEnd, playTTS])
+
   return (
     <div className="min-h-screen bg-[var(--app-bg)] text-[var(--text-primary)] flex flex-col items-center px-3 pt-3 sm:p-5 font-sans">
       {/* Container limited to mobile-first column */}
@@ -757,10 +821,7 @@ export function VoiceEmailView({
           onTouchEnd={stopRecording}
           feedback={feedback}
           autoplayBlocked={autoplayBlocked}
-          onAutoplayResume={() => {
-            setAutoplayBlocked(false)
-            void playTTS(buildIntroText(), handleIntroPlaybackEnd)
-          }}
+          onAutoplayResume={handleAutoplayResume}
           onStopAudio={stopAudio}
           micPermissionDenied={micPermissionDenied}
           onSwitchToTextMode={handleScrollToDraft}
@@ -772,9 +833,7 @@ export function VoiceEmailView({
         <div id="voice-draft-editor" tabIndex={-1} className="outline-none">
           <VoiceDraftArtifact
             draftText={draftText}
-            onChangeDraftText={(newText) => {
-              if (!isLocked) setDraftText(newText)
-            }}
+            onChangeDraftText={handleChangeDraftText}
             initialAIText={initialDraft?.ai_generated_text || null}
             isLocked={isLocked}
             isPending={isPending}
@@ -792,9 +851,9 @@ export function VoiceEmailView({
       {/* Tier 5: Mobile Sticky Bottom Action Bar */}
       {!isLocked && (
         <VoiceActionToolbar
-          onApproveClick={() => setIsApprovalModalOpen(true)}
+          onApproveClick={handleOpenApprovalModal}
           onSaveClick={handleManualSave}
-          onDiscardClick={() => setIsDiscardModalOpen(true)}
+          onDiscardClick={handleOpenDiscardModal}
           isPending={isPending}
           isLocked={isLocked}
           canApprove={Boolean(draftText.trim())}
@@ -802,23 +861,27 @@ export function VoiceEmailView({
         />
       )}
 
-      {/* Confirmation Modals */}
-      <VoiceApprovalModal
-        isOpen={isApprovalModalOpen}
-        onClose={() => setIsApprovalModalOpen(false)}
-        onConfirm={handleConfirmApproval}
-        isPending={isPending}
-        recipient={`${email.from_name || 'Sender'} <${email.from_address}>`}
-        subject={email.subject || '(No Subject)'}
-        draftText={draftText}
-      />
+      {/* Confirmation Modals (conditionally mounted to prevent layout thrashing) */}
+      {isApprovalModalOpen && (
+        <VoiceApprovalModal
+          isOpen={isApprovalModalOpen}
+          onClose={handleCloseApprovalModal}
+          onConfirm={handleConfirmApproval}
+          isPending={isPending}
+          recipient={`${email.from_name || 'Sender'} <${email.from_address}>`}
+          subject={email.subject || '(No Subject)'}
+          draftText={draftText}
+        />
+      )}
 
-      <VoiceDiscardModal
-        isOpen={isDiscardModalOpen}
-        onClose={() => setIsDiscardModalOpen(false)}
-        onConfirm={handleConfirmDiscard}
-        isPending={isPending}
-      />
+      {isDiscardModalOpen && (
+        <VoiceDiscardModal
+          isOpen={isDiscardModalOpen}
+          onClose={handleCloseDiscardModal}
+          onConfirm={handleConfirmDiscard}
+          isPending={isPending}
+        />
+      )}
     </div>
   )
 }

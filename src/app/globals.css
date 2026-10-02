@@ -120,53 +120,43 @@ body {
    Voice Redesign Phase 7-8: Voice Orb & Live Artifact Keyframes
    ========================================================================== */
 
-/* Calm Breathing for Idle Voice Orb */
+/* Calm Breathing for Idle Voice Orb (Composited GPU transforms) */
 @keyframes orb-breathe {
   0%, 100% {
-    transform: scale(0.98);
-    box-shadow: 0 0 20px 2px rgba(28, 26, 23, 0.08);
+    transform: scale(0.98) translateZ(0);
   }
   50% {
-    transform: scale(1.02);
-    box-shadow: 0 0 32px 8px rgba(30, 58, 47, 0.16);
+    transform: scale(1.02) translateZ(0);
   }
 }
 
-/* Responsive Pulse for Listening Voice Orb */
+/* Responsive Pulse for Listening Voice Orb (Composited GPU transforms) */
 @keyframes orb-listening-pulse {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(77, 116, 128, 0.5), 0 0 24px 4px rgba(77, 116, 128, 0.3);
+  0%, 100% {
+    transform: scale(1) translateZ(0);
   }
-  70% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 16px rgba(77, 116, 128, 0), 0 0 36px 10px rgba(77, 116, 128, 0.4);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(77, 116, 128, 0), 0 0 24px 4px rgba(77, 116, 128, 0.3);
+  50% {
+    transform: scale(1.04) translateZ(0);
   }
 }
 
 /* Restrained Orbital Rotation for Thinking */
 @keyframes orb-thinking-spin {
   0% {
-    transform: rotate(0deg);
+    transform: rotate(0deg) translateZ(0);
   }
   100% {
-    transform: rotate(360deg);
+    transform: rotate(360deg) translateZ(0);
   }
 }
 
-/* Fluid Acoustic Dilation for Speaking */
+/* Fluid Acoustic Dilation for Speaking (Composited GPU transforms) */
 @keyframes orb-speaking-pulse {
   0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 20px 4px rgba(217, 119, 6, 0.25);
+    transform: scale(1) translateZ(0);
   }
   50% {
-    transform: scale(1.06);
-    box-shadow: 0 0 36px 12px rgba(217, 119, 6, 0.45);
+    transform: scale(1.05) translateZ(0);
   }
 }
 
@@ -182,18 +172,22 @@ body {
 
 .animate-orb-breathe {
   animation: orb-breathe 3.5s ease-in-out infinite;
+  will-change: transform;
 }
 
 .animate-orb-listening {
   animation: orb-listening-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  will-change: transform;
 }
 
 .animate-orb-thinking {
   animation: orb-thinking-spin 2.2s linear infinite;
+  will-change: transform;
 }
 
 .animate-orb-speaking {
   animation: orb-speaking-pulse 1.6s ease-in-out infinite;
+  will-change: transform;
 }
 
 .animate-draft-update {

@@ -21,7 +21,7 @@ export interface ApprovalQueueCardProps {
   item: ApprovalItem
 }
 
-export function ApprovalQueueCard({ item }: ApprovalQueueCardProps) {
+export const ApprovalQueueCard = React.memo(function ApprovalQueueCard({ item }: ApprovalQueueCardProps) {
   const urgency = (item.urgency || '').toLowerCase()
   const isUrgent = urgency === 'urgent'
   const isPriority = urgency === 'priority'
@@ -155,4 +155,4 @@ export function ApprovalQueueCard({ item }: ApprovalQueueCardProps) {
       </div>
     </div>
   )
-}
+})

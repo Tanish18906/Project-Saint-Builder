@@ -11,7 +11,7 @@ interface InboxListItemProps {
   email: EmailItem
 }
 
-export function InboxListItem({ email }: InboxListItemProps) {
+export const InboxListItem = React.memo(function InboxListItem({ email }: InboxListItemProps) {
   const urgency = (email.urgency || '').toLowerCase().trim()
   const isUrgent = urgency === 'urgent'
   const isPriority = urgency === 'priority'
@@ -161,4 +161,4 @@ export function InboxListItem({ email }: InboxListItemProps) {
       </div>
     </Link>
   )
-}
+})

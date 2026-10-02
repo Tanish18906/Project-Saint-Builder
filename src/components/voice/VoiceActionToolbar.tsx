@@ -9,7 +9,7 @@ import type { VoiceActionToolbarProps } from './types'
  * Ensures non-negotiable safety: voice cannot send emails;
  * manual on-screen confirmation tap is strictly required.
  */
-export function VoiceActionToolbar({
+export const VoiceActionToolbar = React.memo(function VoiceActionToolbar({
   onApproveClick,
   onSaveClick,
   onDiscardClick,
@@ -72,5 +72,5 @@ export function VoiceActionToolbar({
       </div>
     </footer>
   )
-}
+})
 export default VoiceActionToolbar

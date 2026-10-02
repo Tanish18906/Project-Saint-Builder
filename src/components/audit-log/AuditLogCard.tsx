@@ -25,7 +25,7 @@ export interface AuditLogCardProps {
   log: AuditLogItem
 }
 
-export function AuditLogCard({ log }: AuditLogCardProps) {
+export const AuditLogCard = React.memo(function AuditLogCard({ log }: AuditLogCardProps) {
   const [isExpanded, setIsExpanded] = React.useState(false)
 
   const config = getActionConfig(log.action)
@@ -124,4 +124,4 @@ export function AuditLogCard({ log }: AuditLogCardProps) {
       </div>
     </div>
   )
-}
+})

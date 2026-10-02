@@ -41,6 +41,7 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
   const [selectedUrgency, setSelectedUrgency] = useState<string>(paramUrgency)
   const [selectedStatus, setSelectedStatus] = useState<string>(paramStatus)
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const deferredSearchQuery = React.useDeferredValue(searchQuery)
 
   // Supabase Realtime WebSocket Subscription
   useEffect(() => {
@@ -160,8 +161,8 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
       }
 
       // Search query across sender, email, subject, body, and account
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim()
+      if (deferredSearchQuery.trim()) {
+        const query = deferredSearchQuery.toLowerCase().trim()
         const matchSubject = (email.subject || '').toLowerCase().includes(query)
         const matchFrom = (email.from_name || '').toLowerCase().includes(query)
         const matchEmail = (email.from_address || '').toLowerCase().includes(query)
@@ -184,7 +185,7 @@ export function InboxView({ initialEmails, accounts }: InboxViewProps) {
     selectedTheme,
     selectedUrgency,
     selectedStatus,
-    searchQuery,
+    deferredSearchQuery,
   ])
 
   // Count summaries

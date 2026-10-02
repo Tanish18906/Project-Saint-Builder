@@ -7,13 +7,13 @@ export interface EmailItem {
   from_name: string | null
   subject: string | null
   body_text: string | null
-  body_html: string | null
+  body_html?: string | null
   received_at: string
   theme: string | null
   urgency: string | null
   routed_roles: string[] | null
   status: string
-  created_at: string | null
+  created_at?: string | null
   accounts?: {
     id?: string
     email_address: string

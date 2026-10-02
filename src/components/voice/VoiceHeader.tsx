@@ -30,9 +30,16 @@ function formatReceivedDate(isoString: string): string {
  * Consolidates context, navigation, status, subject, and original email
  * into a single unified anchor (~80px collapsed height).
  */
-export function VoiceHeader({ email, draft, isLocked }: VoiceHeaderProps) {
+export const VoiceHeader = React.memo(function VoiceHeader({ email, draft, isLocked }: VoiceHeaderProps) {
   const [showOriginal, setShowOriginal] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
+  const copyTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  React.useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+    }
+  }, [])
 
   const activeStatus = isLocked ? 'approved' : draft?.status || email.status
   const senderDisplayName = email.from_name || email.from_address
@@ -57,7 +64,8 @@ export function VoiceHeader({ email, draft, isLocked }: VoiceHeaderProps) {
         document.body.removeChild(textarea)
       }
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
     } catch {
       // Fallback
     }
@@ -164,4 +172,4 @@ export function VoiceHeader({ email, draft, isLocked }: VoiceHeaderProps) {
       )}
     </header>
   )
-}
+})

@@ -10,12 +10,4 @@ export {
   type VoiceDiscardModalProps,
 } from './VoiceConfirmationModals'
 export { VoiceHeader, type VoiceHeaderProps } from './VoiceHeader'
-export {
-  OriginalEmailCollapsible,
-  type OriginalEmailCollapsibleProps,
-} from './OriginalEmailCollapsible'
-export {
-  VoiceDraftReviewCard,
-  type VoiceDraftReviewCardProps,
-} from './VoiceDraftReviewCard'
 export { VoiceEmailView } from './VoiceEmailView'

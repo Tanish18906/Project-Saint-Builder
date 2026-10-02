@@ -1,10 +1,6 @@
-import React from 'react'
-import { AppShell } from '@/components/shell'
-
 export default function LoadingApprovals() {
   return (
-    <AppShell currentPath="/approvals">
-      <div className="space-y-6 animate-pulse">
+    <div className="space-y-6 animate-pulse">
         {/* Header Summary Card Skeleton */}
         <div className="bg-[var(--surface)] border border-[var(--border-subtle)] rounded-xl p-5 sm:p-6 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -68,6 +64,5 @@ export default function LoadingApprovals() {
           ))}
         </div>
       </div>
-    </AppShell>
   )
 }

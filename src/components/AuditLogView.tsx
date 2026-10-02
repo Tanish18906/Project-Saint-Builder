@@ -23,6 +23,7 @@ export function AuditLogView({ initialLogs }: AuditLogViewProps) {
   const [isRealtimeLive, setIsRealtimeLive] = useState<boolean>(false)
   const [selectedAction, setSelectedAction] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const deferredSearchQuery = React.useDeferredValue(searchQuery)
 
   // Adjust state during render when props change (React recommended pattern)
   if (initialLogs !== prevInitialLogs) {
@@ -125,8 +126,8 @@ export function AuditLogView({ initialLogs }: AuditLogViewProps) {
       }
 
       // 2. Text Search
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim()
+      if (deferredSearchQuery.trim()) {
+        const q = deferredSearchQuery.toLowerCase().trim()
         const matchAction = (log.action || '').toLowerCase().includes(q)
         const matchSubject = (log.emails?.subject || '').toLowerCase().includes(q)
         const matchSender =
@@ -144,7 +145,7 @@ export function AuditLogView({ initialLogs }: AuditLogViewProps) {
 
       return true
     })
-  }, [logs, selectedAction, searchQuery])
+  }, [logs, selectedAction, deferredSearchQuery])
 
   return (
     <div className="space-y-6">

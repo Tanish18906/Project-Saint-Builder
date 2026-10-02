@@ -39,7 +39,7 @@ function hasUnresolvedPlaceholders(text: string): boolean {
 /**
  * Mobile-first bottom-sheet confirmation modal for "Approve & Send".
  */
-export function VoiceApprovalModal({
+export const VoiceApprovalModal = React.memo(function VoiceApprovalModal({
   isOpen,
   onClose,
   onConfirm,
@@ -48,24 +48,24 @@ export function VoiceApprovalModal({
   subject,
   draftText,
 }: VoiceApprovalModalProps) {
-  // ESC key handler and body scroll lock
+  const onCloseRef = React.useRef(onClose)
+  onCloseRef.current = onClose
+
+  // ESC key handler and body scroll lock (only when open)
   React.useEffect(() => {
+    if (!isOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !isPending) {
-        onClose()
+      if (e.key === 'Escape' && !isPending) {
+        onCloseRef.current()
       }
     }
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-      window.addEventListener('keydown', handleKeyDown)
-    } else {
-      document.body.style.overflow = ''
-    }
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
     return () => {
       document.body.style.overflow = ''
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [isOpen, isPending, onClose])
+  }, [isOpen, isPending])
 
   if (!isOpen) return null
 
@@ -194,35 +194,35 @@ export function VoiceApprovalModal({
       </div>
     </div>
   )
-}
+})
 
 /**
  * Mobile-first confirmation modal for "Discard Draft".
  */
-export function VoiceDiscardModal({
+export const VoiceDiscardModal = React.memo(function VoiceDiscardModal({
   isOpen,
   onClose,
   onConfirm,
   isPending,
 }: VoiceDiscardModalProps) {
-  // ESC key handler and body scroll lock
+  const onCloseRef = React.useRef(onClose)
+  onCloseRef.current = onClose
+
+  // ESC key handler and body scroll lock (only when open)
   React.useEffect(() => {
+    if (!isOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !isPending) {
-        onClose()
+      if (e.key === 'Escape' && !isPending) {
+        onCloseRef.current()
       }
     }
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-      window.addEventListener('keydown', handleKeyDown)
-    } else {
-      document.body.style.overflow = ''
-    }
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
     return () => {
       document.body.style.overflow = ''
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [isOpen, isPending, onClose])
+  }, [isOpen, isPending])
 
   if (!isOpen) return null
 
@@ -296,4 +296,4 @@ export function VoiceDiscardModal({
       </div>
     </div>
   )
-}
+})

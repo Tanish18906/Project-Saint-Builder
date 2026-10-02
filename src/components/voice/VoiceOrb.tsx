@@ -5,7 +5,9 @@ import { Mic, MicOff, Square, Sparkles, Volume2 } from 'lucide-react'
 import type { VoiceOrbProps } from './types'
 export type { VoiceOrbProps }
 
-export function VoiceOrb({
+const EQ_BAR_INDICES = [0, 1, 2, 3, 4] as const
+
+export const VoiceOrb = React.memo(function VoiceOrb({
   uiState,
   showMicBusy,
   isLocked,
@@ -232,7 +234,7 @@ export function VoiceOrb({
             </div>
           ) : uiState === 'listening' ? (
             <div className="flex items-center gap-1">
-              {[0, 1, 2, 3, 4].map((i) => (
+              {EQ_BAR_INDICES.map((i) => (
                 <span
                   key={i}
                   className="w-1 bg-teal-200 rounded-full animate-voice-eq"
@@ -318,4 +320,4 @@ export function VoiceOrb({
       )}
     </div>
   )
-}
+})

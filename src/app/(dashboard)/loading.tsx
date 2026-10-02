@@ -1,10 +1,6 @@
-import React from 'react'
-import { AppShell } from '@/components/shell'
-
 export default function LoadingHomeCommandCentre() {
   return (
-    <AppShell currentPath="/">
-      <div className="space-y-6 animate-pulse select-none">
+    <div className="space-y-6 animate-pulse select-none">
         {/* Header Skeleton */}
         <div className="bg-[var(--surface)] border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl p-5 sm:p-6 lg:p-7 space-y-4 shadow-xs">
           <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
@@ -101,6 +97,5 @@ export default function LoadingHomeCommandCentre() {
           </div>
         </div>
       </div>
-    </AppShell>
   )
 }

@@ -55,7 +55,7 @@ export function renderDraftWithPlaceholders(
  * Executive AI Draft Work Artifact (Tier 3)
  * First-class visible document surface positioned directly beneath Voice Orb.
  */
-export function VoiceDraftArtifact({
+export const VoiceDraftArtifact = React.memo(function VoiceDraftArtifact({
   draftText,
   onChangeDraftText,
   initialAIText,
@@ -75,13 +75,14 @@ export function VoiceDraftArtifact({
 
   // Trigger brief shimmer animation when draftText updates externally (e.g. via voice rewrite)
   useEffect(() => {
-    if (prevTextRef.current !== draftText) {
+    if (!isEditing && prevTextRef.current !== draftText) {
       prevTextRef.current = draftText
       setShimmer(true)
       const timer = setTimeout(() => setShimmer(false), 1200)
       return () => clearTimeout(timer)
     }
-  }, [draftText, isDraftUpdated])
+    prevTextRef.current = draftText
+  }, [draftText, isDraftUpdated, isEditing])
 
   // Focus textarea when entering edit mode
   useEffect(() => {
@@ -97,6 +98,13 @@ export function VoiceDraftArtifact({
     const matches = draftText.match(PLACEHOLDER_REGEX)
     return matches ? Array.from(new Set(matches)) : []
   }, [draftText])
+
+  const handleStartEditing = React.useCallback(() => setIsEditing(true), [])
+
+  const renderedDraft = useMemo(() => {
+    if (!draftText) return null
+    return renderDraftWithPlaceholders(draftText, handleStartEditing)
+  }, [draftText, handleStartEditing])
 
   // Word and character counts
   const wordCount = useMemo(() => {
@@ -204,9 +212,7 @@ export function VoiceDraftArtifact({
             aria-label="Email draft content"
             className="whitespace-pre-wrap font-sans text-[14px] sm:text-[15px] text-stone-800 leading-relaxed max-h-56 overflow-y-auto break-words select-text focus:outline-none"
           >
-            {draftText ? (
-              renderDraftWithPlaceholders(draftText, () => setIsEditing(true))
-            ) : (
+            {renderedDraft || (
               <span className="text-stone-400 italic">No draft content yet. Speak to generate reply.</span>
             )}
           </div>
@@ -241,4 +247,4 @@ export function VoiceDraftArtifact({
 
     </section>
   )
-}
+})

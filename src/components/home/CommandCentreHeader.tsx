@@ -1,5 +1,3 @@
-'use client'
-
 import * as React from 'react'
 import Link from 'next/link'
 import { CheckCircle2, AlertTriangle, Inbox } from 'lucide-react'
