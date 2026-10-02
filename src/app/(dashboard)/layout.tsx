@@ -7,10 +7,11 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   const supabase = await createClient()
-  const { data: userData } = await supabase.auth.getUser()
+  // Proxy already validated the session; getClaims() verifies locally (no Auth round trip).
+  const { data } = await supabase.auth.getClaims()
 
   return (
-    <AppShell userEmail={userData?.user?.email}>
+    <AppShell userEmail={data?.claims?.email}>
       {children}
     </AppShell>
   )
