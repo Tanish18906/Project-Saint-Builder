@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import Link from 'next/link'
+import Link, { useLinkStatus } from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/login/actions'
 import {
@@ -24,6 +24,20 @@ export interface SidebarProps {
   mobileOpen: boolean
   onMobileClose: () => void
   currentPath?: string
+}
+
+// Shown while a click on this nav link is still waiting on the server.
+// Always rendered at a fixed size (opacity toggle) so it never shifts layout.
+function NavPendingHint() {
+  const { pending } = useLinkStatus()
+  return (
+    <span
+      aria-hidden
+      className={`absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[var(--brand)] transition-opacity ${
+        pending ? 'opacity-100 animate-pulse' : 'opacity-0'
+      }`}
+    />
+  )
 }
 
 export function Sidebar({
@@ -145,7 +159,7 @@ export function Sidebar({
                   href={item.href}
                   onClick={isMobile ? onMobileClose : undefined}
                   title={isIconOnly ? item.label : undefined}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors select-none ${
+                  className={`relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors select-none ${
                     isIconOnly ? 'justify-center' : ''
                   } ${
                     item.active
@@ -159,6 +173,7 @@ export function Sidebar({
                     }`}
                   />
                   {!isIconOnly && <span className="truncate">{item.label}</span>}
+                  <NavPendingHint />
                 </Link>
               )
             })}
