@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useTransition, useCallback } from 'react'
 import { parseVoiceCommand } from '@/lib/voice-commands'
+import type { VoiceAgentReply } from '@/app/api/voice/agent/route'
 import {
   saveDraftAction,
   approveAndSendAction,
@@ -289,25 +290,22 @@ export function VoiceEmailView({
     }
   }, [email.id, stopAudio, token, playBrowserTTSFallback])
 
-  // Assistant-style intro script
-  const buildIntroText = useCallback(() => {
+  // Spoken version of the incoming email
+  const buildEmailReadout = useCallback(() => {
     const fromDisplay = email.from_name || email.from_address
     const subjectText = email.subject || 'No subject'
     const bodyText = email.body_text ? email.body_text : 'No message text was included.'
+    return `You've received an email from ${fromDisplay}, regarding: ${subjectText}. Here's the message: ${bodyText} That's the end of the email.`
+  }, [email.from_name, email.from_address, email.subject, email.body_text])
+
+  // Assistant-style intro script
+  const buildIntroText = useCallback(() => {
     const hasDraft = Boolean(initialDraft && (initialDraft.edited_text || initialDraft.ai_generated_text))
-
-    const parts = [
-      `You've received an email from ${fromDisplay}, regarding: ${subjectText}.`,
-      `Here's the message: ${bodyText}`,
-      `That's the end of the email.`,
-    ]
-
-    if (hasDraft) {
-      parts.push(`There's a draft reply ready — say "read the draft" to hear it, or you can start dictating changes now.`)
-    }
-
-    return parts.join(' ')
-  }, [email.from_name, email.from_address, email.subject, email.body_text, initialDraft])
+    const hint = hasDraft
+      ? `There's a draft reply ready. Ask me to read it, change it, or anything else about this email.`
+      : `There's no draft yet. Hold the button and ask me to draft a reply.`
+    return `${buildEmailReadout()} ${hint}`
+  }, [buildEmailReadout, initialDraft])
 
   const handleIntroPlaybackEnd = useCallback(() => {
     setFeedback({
@@ -316,11 +314,15 @@ export function VoiceEmailView({
     })
   }, [])
 
-  // 3. Auto-play assistant-style intro on load
+  // 3. Auto-play assistant-style intro ONCE per page load. Saving the draft
+  // revalidates this route and hands us a new `initialDraft`, which re-runs this
+  // effect — without the ref guard the whole email was read out after every command.
+  const introPlayedRef = useRef<boolean>(false)
   useEffect(() => {
-    if (isLocked) return
+    if (isLocked || introPlayedRef.current) return
 
     const timer = setTimeout(() => {
+      introPlayedRef.current = true
       setFeedback({
         type: 'info',
         message: 'Playing your email... Hold button below to speak a command or dictate reply.',
@@ -500,23 +502,11 @@ export function VoiceEmailView({
         })
 
         try {
+          // Fallback path only (agent unreachable): never paste a spoken command
+          // into an empty draft as if it were the reply.
           if (!currentDraft) {
-            setDraftText(editInstruction)
-            setWasDiscarded(false)
-
-            await saveDraftAction({
-              emailId: email.id,
-              draftId: draftRef.current?.id,
-              editedText: editInstruction,
-              via: 'voice',
-            })
-
-            setFeedback({
-              type: 'success',
-              message: 'Saved dictated reply. Playing back...',
-            })
-
-            void playTTS(`Draft reply created: ${editInstruction}`)
+            setFeedback({ type: 'warning', message: "Couldn't reach the assistant to write a draft. Please try again." })
+            void playTTS("Sorry, I couldn't reach the assistant to write a draft. Please try again in a moment.")
             return
           }
 
@@ -572,6 +562,95 @@ export function VoiceEmailView({
     [email.id, email.from_name, email.from_address, email.subject, email.theme, email.routed_roles, handleRewriteTone, playTTS, token]
   )
 
+  // 5b. Voice agent turn: the LLM decides what to do with whatever was said.
+  // Falls back to the deterministic command parser if the agent is unreachable.
+  const historyRef = useRef<{ role: 'user' | 'assistant'; text: string }[]>([])
+  const runAgent = useCallback(
+    async (transcript: string) => {
+      setUiState('processing')
+      setFeedback({ type: 'info', message: 'Thinking...' })
+
+      let reply: VoiceAgentReply
+      try {
+        const res = await fetch('/api/voice/agent', {
+          method: 'POST',
+          signal: AbortSignal.timeout(30000),
+          headers: { 'Content-Type': 'application/json', 'x-voice-token': token },
+          body: JSON.stringify({
+            emailId: email.id,
+            token,
+            transcript,
+            currentDraft: draftTextRef.current,
+            history: historyRef.current,
+          }),
+        })
+        if (!res.ok) throw new Error('agent unavailable')
+        reply = await res.json()
+      } catch {
+        await executeVoiceAction(parseVoiceCommand(transcript))
+        return
+      }
+
+      historyRef.current = [
+        ...historyRef.current,
+        { role: 'user' as const, text: transcript },
+        { role: 'assistant' as const, text: reply.say },
+      ].slice(-8)
+
+      const say = reply.say || ''
+      const currentDraft = draftTextRef.current.trim()
+
+      switch (reply.action) {
+        case 'read_email':
+          setFeedback({ type: 'info', message: 'Reading the email...' })
+          void playTTS(`${say} ${buildEmailReadout()}`)
+          return
+
+        case 'read_draft':
+          if (!currentDraft) {
+            setFeedback({ type: 'info', message: 'No draft yet.' })
+            void playTTS("There's no draft yet. Ask me to draft a reply and I'll write one.")
+            return
+          }
+          setFeedback({ type: 'info', message: 'Reading the draft...' })
+          void playTTS(`${say} ${currentDraft}`)
+          return
+
+        case 'update_draft':
+          setDraftText(reply.draft)
+          setWasDiscarded(false)
+          await saveDraftAction({
+            emailId: email.id,
+            draftId: draftRef.current?.id,
+            editedText: reply.draft,
+            via: 'voice',
+          })
+          setFeedback({ type: 'success', message: say || 'Draft updated.' })
+          void playTTS(reply.read_back ? `${say} ${reply.draft}` : say)
+          return
+
+        case 'discard_draft':
+          setIsDiscardModalOpen(true)
+          setFeedback({ type: 'warning', message: 'Tap Discard Draft on screen to confirm.' })
+          void playTTS(say || 'Please tap Discard Draft on screen to confirm.')
+          return
+
+        case 'send_requested':
+          // Voice safety rule: never send by voice — only open the tap-to-confirm sheet.
+          if (currentDraft) setIsApprovalModalOpen(true)
+          setFeedback({ type: 'warning', message: 'Sending needs a tap on Approve & Send.' })
+          void playTTS(say || 'For safety, emails cannot be sent by voice. Please tap Approve and Send on screen.')
+          return
+
+        default:
+          setFeedback({ type: 'info', message: say || 'Okay.' })
+          if (say) void playTTS(say)
+          else setUiState('idle')
+      }
+    },
+    [buildEmailReadout, email.id, executeVoiceAction, playTTS, token]
+  )
+
   // 6. Speech Transcription
   const handleProcessAudioBlob = useCallback(
     async (blob: Blob) => {
@@ -604,15 +683,13 @@ export function VoiceEmailView({
         }
 
         setLastTranscript(transcript)
-
-        const command = parseVoiceCommand(transcript)
-        await executeVoiceAction(command)
+        await runAgent(transcript)
       } catch {
         setUiState('idle')
         setFeedback({ type: 'error', message: 'Error processing voice. Please try again or edit text directly.' })
       }
     },
-    [email.id, executeVoiceAction, token]
+    [email.id, runAgent, token]
   )
 
   // 7. Push-to-Talk Recording Handlers
@@ -777,10 +854,10 @@ export function VoiceEmailView({
 
   const handleSelectSuggestedCommand = useCallback(
     (cmd: string) => {
-      const parsed = parseVoiceCommand(cmd)
-      void executeVoiceAction(parsed)
+      setLastTranscript(cmd)
+      void runAgent(cmd)
     },
-    [executeVoiceAction]
+    [runAgent]
   )
 
   const handleScrollToDraft = useCallback(() => {
