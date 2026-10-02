@@ -56,9 +56,11 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // getClaims() refreshes the session if needed, then verifies the access token's
+  // ES256 signature locally against the cached JWKS — no Auth server round trip.
+  // (Falls back to a network getUser() for symmetric/HS256 tokens.)
+  const { data } = await supabase.auth.getClaims()
+  const user = data?.claims
 
   // If token is expired or invalid and user not found
   if (!user && !isLoginPage && !isAuthCallback) {
