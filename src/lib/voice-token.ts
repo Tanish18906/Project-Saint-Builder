@@ -1,9 +1,16 @@
 import crypto from 'crypto'
 
+// Compact voice-link token: base64url of 32 bytes → 43 URL-safe chars, so a
+// WhatsApp link is just `/voice/<token>`.
+//   bytes [0,16)  email UUID
+//   bytes [16,20) expiry, uint32 unix seconds (big-endian)
+//   bytes [20,32) HMAC-SHA256(secret, bytes[0,20)) truncated to 96 bits
+// n8n "Foreman Whatsapp" → "Generate Signed Voice Token" mints the same format
+// with the same VOICE_TOKEN_SECRET — keep the two in sync.
+
 export interface VoiceTokenPayload {
   email_id: string
   exp: number // Expiration timestamp in seconds
-  iat: number // Issued at timestamp in seconds
 }
 
 export interface VoiceTokenVerificationResult {
@@ -14,23 +21,39 @@ export interface VoiceTokenVerificationResult {
   payload?: VoiceTokenPayload
 }
 
+// Local-dev fallback only. Production must set VOICE_TOKEN_SECRET.
 const DEFAULT_SECRET = 'foreman-voice-secret-key-3b7c89f2a4e10d'
 
 function getSecret(): string {
-  return process.env.VOICE_TOKEN_SECRET || DEFAULT_SECRET
-}
-
-function base64UrlEncode(input: string | Buffer): string {
-  const base64 = (typeof input === 'string' ? Buffer.from(input, 'utf8') : input).toString('base64')
-  return base64.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-}
-
-function base64UrlDecode(input: string): string {
-  let base64 = input.replace(/-/g, '+').replace(/_/g, '/')
-  while (base64.length % 4 !== 0) {
-    base64 += '='
+  const secret = process.env.VOICE_TOKEN_SECRET
+  if (secret) return secret
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('VOICE_TOKEN_SECRET is not set')
   }
-  return Buffer.from(base64, 'base64').toString('utf8')
+  return DEFAULT_SECRET
+}
+
+function sign(data: Buffer): Buffer {
+  return crypto.createHmac('sha256', getSecret()).update(data).digest().subarray(0, 12)
+}
+
+function uuidToBytes(id: string): Buffer | null {
+  const hex = id.trim().replace(/-/g, '').toLowerCase()
+  return /^[0-9a-f]{32}$/.test(hex) ? Buffer.from(hex, 'hex') : null
+}
+
+function bytesToUuid(bytes: Buffer): string {
+  return bytes.toString('hex').replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5')
+}
+
+function decode(token: string): Buffer | null {
+  let clean = token.trim()
+  try {
+    clean = decodeURIComponent(clean)
+  } catch {
+    // use as-is
+  }
+  return /^[A-Za-z0-9_-]{43}$/.test(clean) ? Buffer.from(clean, 'base64url') : null
 }
 
 /**
@@ -38,27 +61,23 @@ function base64UrlDecode(input: string): string {
  * Valid for the specified number of hours (default: 24h).
  */
 export function generateVoiceToken(emailId: string, expiresInHours = 24): string {
-  const now = Math.floor(Date.now() / 1000)
-  const exp = now + expiresInHours * 3600
+  const id = uuidToBytes(emailId)
+  if (!id) throw new Error('emailId must be a UUID')
 
-  const header = { alg: 'HS256', typ: 'JWT' }
-  const payload: VoiceTokenPayload = {
-    email_id: emailId.trim(),
-    exp,
-    iat: now,
-  }
+  const exp = Buffer.alloc(4)
+  exp.writeUInt32BE(Math.floor(Date.now() / 1000) + Math.round(expiresInHours * 3600))
 
-  const encodedHeader = base64UrlEncode(JSON.stringify(header))
-  const encodedPayload = base64UrlEncode(JSON.stringify(payload))
-  const dataToSign = `${encodedHeader}.${encodedPayload}`
+  const data = Buffer.concat([id, exp])
+  return Buffer.concat([data, sign(data)]).toString('base64url')
+}
 
-  const signature = crypto
-    .createHmac('sha256', getSecret())
-    .update(dataToSign)
-    .digest()
-
-  const encodedSignature = base64UrlEncode(signature)
-  return `${dataToSign}.${encodedSignature}`
+/**
+ * Reads the email UUID out of a well-formed token WITHOUT verifying it.
+ * Only for routing `/voice/<token>`; always call verifyVoiceToken() afterwards.
+ */
+export function voiceTokenEmailId(token: string): string | null {
+  const bytes = decode(token)
+  return bytes ? bytesToUuid(bytes.subarray(0, 16)) : null
 }
 
 /**
@@ -74,55 +93,23 @@ export function verifyVoiceToken(
       return { valid: false, error: 'missing_token', errorMessage: 'No voice token provided in request' }
     }
 
-    // Clean up possible URL-encoded string or whitespace
-    let cleanToken = token.trim()
-    if (cleanToken.includes('%')) {
-      try {
-        cleanToken = decodeURIComponent(cleanToken)
-      } catch {
-        // use cleanToken as-is
-      }
+    const bytes = decode(token)
+    if (!bytes) {
+      return { valid: false, error: 'invalid_format', errorMessage: 'Malformed voice token' }
     }
 
-    const parts = cleanToken.split('.')
-    if (parts.length !== 3) {
-      return { valid: false, error: 'invalid_format', errorMessage: 'Malformed token structure (expected 3 parts)' }
-    }
-
-    const [encodedHeader, encodedPayload, encodedSignature] = parts
-    if (!encodedHeader || !encodedPayload || !encodedSignature) {
-      return { valid: false, error: 'invalid_format', errorMessage: 'Token header, payload, or signature missing' }
-    }
-
-    const dataToSign = `${encodedHeader}.${encodedPayload}`
-
-    // Verify HMAC signature
-    const expectedSignature = crypto
-      .createHmac('sha256', getSecret())
-      .update(dataToSign)
-      .digest()
-
-    const expectedSignatureB64 = base64UrlEncode(expectedSignature)
-
-    // Constant-time buffer comparison
-    const sigA = Buffer.from(encodedSignature, 'utf8')
-    const sigB = Buffer.from(expectedSignatureB64, 'utf8')
-    const isSignatureValid = sigA.length === sigB.length && crypto.timingSafeEqual(sigA, sigB)
-
-    if (!isSignatureValid) {
+    // Constant-time comparison of the 96-bit tag
+    if (!crypto.timingSafeEqual(bytes.subarray(20), sign(bytes.subarray(0, 20)))) {
       return { valid: false, error: 'invalid_signature', errorMessage: 'Cryptographic signature mismatch' }
     }
 
-    // Decode and parse payload JSON
-    const payloadJson = base64UrlDecode(encodedPayload)
-    const payload: VoiceTokenPayload = JSON.parse(payloadJson)
-
-    if (!payload || typeof payload !== 'object') {
-      return { valid: false, error: 'invalid_format', errorMessage: 'Token payload is not a valid JSON object' }
+    const payload: VoiceTokenPayload = {
+      email_id: bytesToUuid(bytes.subarray(0, 16)),
+      exp: bytes.readUInt32BE(16),
     }
 
     const now = Math.floor(Date.now() / 1000)
-    if (payload.exp && typeof payload.exp === 'number' && payload.exp < now) {
+    if (payload.exp < now) {
       return {
         valid: false,
         error: 'expired',
@@ -131,7 +118,7 @@ export function verifyVoiceToken(
       }
     }
 
-    if (expectedEmailId && payload.email_id !== expectedEmailId.trim()) {
+    if (expectedEmailId && payload.email_id !== expectedEmailId.trim().toLowerCase()) {
       return {
         valid: false,
         error: 'email_mismatch',
@@ -145,11 +132,11 @@ export function verifyVoiceToken(
       emailId: payload.email_id,
       payload,
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
       valid: false,
       error: 'invalid_format',
-      errorMessage: err?.message || 'Error parsing token',
+      errorMessage: err instanceof Error ? err.message : 'Error parsing token',
     }
   }
 }

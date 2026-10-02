@@ -34,7 +34,7 @@ async function run() {
   }
 
   const token = generateVoiceToken(emailId, 24)
-  const url = `${baseUrl.replace(/\/$/, '')}/voice/${emailId}?token=${token}`
+  const url = `${baseUrl.replace(/\/$/, '')}/voice/${token}`
 
   console.log('--------------------------------------------------')
   console.log('🎙️  FOREMAN VOICE REVIEW LINK GENERATED')

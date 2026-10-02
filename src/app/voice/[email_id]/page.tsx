@@ -1,6 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
-import { verifyVoiceToken } from '@/lib/voice-token'
+import { verifyVoiceToken, voiceTokenEmailId } from '@/lib/voice-token'
 import { createClient } from '@/lib/supabase/server'
 import { VoiceEmailView } from '@/components/voice'
 import { AlertCircle, ShieldAlert, ArrowRight, RotateCcw, Clock } from 'lucide-react'
@@ -119,6 +119,13 @@ export default async function VoicePage({ params, searchParams }: VoicePageProps
 
     emailId = (resolvedParams?.email_id || '').trim()
     token = resolvedSearchParams?.token
+
+    // Short WhatsApp links carry the token in the path: /voice/<token>
+    const pathEmailId = !token ? voiceTokenEmailId(emailId) : null
+    if (pathEmailId) {
+      token = emailId
+      emailId = pathEmailId
+    }
   } catch (err: unknown) {
     console.error('[VoicePage] Error resolving route parameters:', err)
   }
