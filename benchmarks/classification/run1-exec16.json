@@ -1,0 +1,345 @@
+[
+ {
+  "_case": "A1",
+  "theme": "accounts",
+  "urgency": "normal",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"accounts\", \"urgency\": \"normal\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "A2",
+  "theme": "accounts",
+  "urgency": "normal",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"accounts\", \"urgency\": \"normal\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "A3",
+  "theme": "accounts",
+  "urgency": "normal",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"accounts\", \"urgency\": \"normal\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "O1",
+  "theme": "orders",
+  "urgency": "normal",
+  "routed_roles": [
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"orders\", \"urgency\": \"normal\", \"routed_roles\": [\"senior_admin\"]}"
+ },
+ {
+  "_case": "O2",
+  "theme": "orders",
+  "urgency": "priority",
+  "routed_roles": [
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"orders\", \"urgency\": \"priority\", \"routed_roles\": [\"senior_admin\"]}"
+ },
+ {
+  "_case": "O3",
+  "theme": "orders",
+  "urgency": "normal",
+  "routed_roles": [
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"orders\", \"urgency\": \"normal\", \"routed_roles\": [\"senior_admin\"]}"
+ },
+ {
+  "_case": "F1",
+  "theme": "finance",
+  "urgency": "urgent",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"finance\", \"urgency\": \"urgent\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "F2",
+  "theme": "finance",
+  "urgency": "normal",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"finance\", \"urgency\": \"normal\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "F3",
+  "theme": "finance",
+  "urgency": "priority",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"finance\", \"urgency\": \"priority\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "S1",
+  "theme": "suppliers",
+  "urgency": "normal",
+  "routed_roles": [
+   "director",
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"suppliers\", \"urgency\": \"normal\", \"routed_roles\": [\"director\", \"senior_admin\"]}"
+ },
+ {
+  "_case": "S2",
+  "theme": "suppliers",
+  "urgency": "priority",
+  "routed_roles": [
+   "director",
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"suppliers\", \"urgency\": \"priority\", \"routed_roles\": [\"director\", \"senior_admin\"]}"
+ },
+ {
+  "_case": "S3",
+  "theme": "suppliers",
+  "urgency": "normal",
+  "routed_roles": [
+   "director",
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"suppliers\", \"urgency\": \"normal\", \"routed_roles\": [\"director\", \"senior_admin\"]}"
+ },
+ {
+  "_case": "P1",
+  "theme": "promotions",
+  "urgency": "normal",
+  "routed_roles": [
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"promotions\", \"urgency\": \"normal\", \"routed_roles\": [\"senior_admin\"]}"
+ },
+ {
+  "_case": "P2",
+  "theme": "promotions",
+  "urgency": "normal",
+  "routed_roles": [
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"promotions\", \"urgency\": \"normal\", \"routed_roles\": [\"senior_admin\"]}"
+ },
+ {
+  "_case": "P3",
+  "theme": "promotions",
+  "urgency": "priority",
+  "routed_roles": [
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"promotions\", \"urgency\": \"priority\", \"routed_roles\": [\"senior_admin\"]}"
+ },
+ {
+  "_case": "N1",
+  "theme": "nph_jobs",
+  "urgency": "urgent",
+  "routed_roles": [
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"nph_jobs\", \"urgency\": \"urgent\", \"routed_roles\": [\"senior_admin\"]}"
+ },
+ {
+  "_case": "N2",
+  "theme": "nph_jobs",
+  "urgency": "priority",
+  "routed_roles": [
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"nph_jobs\", \"urgency\": \"priority\", \"routed_roles\": [\"senior_admin\"]}"
+ },
+ {
+  "_case": "N3",
+  "theme": "nph_jobs",
+  "urgency": "normal",
+  "routed_roles": [
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"nph_jobs\", \"urgency\": \"normal\", \"routed_roles\": [\"senior_admin\"]}"
+ },
+ {
+  "_case": "M1",
+  "theme": "meetings_appointments",
+  "urgency": "normal",
+  "routed_roles": [
+   "senior_admin",
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"meetings_appointments\", \"urgency\": \"normal\", \"routed_roles\": [\"senior_admin\", \"director\"]}"
+ },
+ {
+  "_case": "M2",
+  "theme": "meetings_appointments",
+  "urgency": "urgent",
+  "routed_roles": [
+   "senior_admin",
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"meetings_appointments\", \"urgency\": \"urgent\", \"routed_roles\": [\"senior_admin\", \"director\"]}"
+ },
+ {
+  "_case": "M3",
+  "theme": "meetings_appointments",
+  "urgency": "normal",
+  "routed_roles": [
+   "senior_admin",
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"meetings_appointments\", \"urgency\": \"normal\", \"routed_roles\": [\"senior_admin\", \"director\"]}"
+ },
+ {
+  "_case": "I1",
+  "theme": "invoices",
+  "urgency": "normal",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"invoices\", \"urgency\": \"normal\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "I2",
+  "theme": "finance",
+  "urgency": "priority",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"finance\", \"urgency\": \"priority\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "I3",
+  "theme": "invoices",
+  "urgency": "normal",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"invoices\", \"urgency\": \"normal\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "C1",
+  "theme": "certificates",
+  "urgency": "normal",
+  "routed_roles": [
+   "senior_admin",
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"certificates\", \"urgency\": \"normal\", \"routed_roles\": [\"senior_admin\", \"director\"]}"
+ },
+ {
+  "_case": "C2",
+  "theme": "certificates",
+  "urgency": "priority",
+  "routed_roles": [
+   "senior_admin",
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"certificates\", \"urgency\": \"priority\", \"routed_roles\": [\"senior_admin\", \"director\"]}"
+ },
+ {
+  "_case": "C3",
+  "theme": "certificates",
+  "urgency": "urgent",
+  "routed_roles": [
+   "senior_admin",
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"certificates\", \"urgency\": \"urgent\", \"routed_roles\": [\"senior_admin\", \"director\"]}"
+ },
+ {
+  "_case": "H1",
+  "theme": "invoices",
+  "urgency": "normal",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"invoices\", \"urgency\": \"normal\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "H2",
+  "theme": "nph_jobs",
+  "urgency": "urgent",
+  "routed_roles": [
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"nph_jobs\", \"urgency\": \"urgent\", \"routed_roles\": [\"senior_admin\"]}"
+ },
+ {
+  "_case": "H3",
+  "theme": "nph_jobs",
+  "urgency": "urgent",
+  "routed_roles": [
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"nph_jobs\", \"urgency\": \"urgent\", \"routed_roles\": [\"senior_admin\"]}"
+ },
+ {
+  "_case": "H4",
+  "theme": "invoices",
+  "urgency": "normal",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"invoices\", \"urgency\": \"normal\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "H5",
+  "theme": "invoices",
+  "urgency": "normal",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"invoices\", \"urgency\": \"normal\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "H6",
+  "theme": "nph_jobs",
+  "urgency": "urgent",
+  "routed_roles": [
+   "senior_admin"
+  ],
+  "raw_classification_text": "{\"theme\": \"nph_jobs\", \"urgency\": \"urgent\", \"routed_roles\": [\"senior_admin\"]}"
+ },
+ {
+  "_case": "H7",
+  "theme": "finance",
+  "urgency": "urgent",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"finance\", \"urgency\": \"urgent\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "H8",
+  "theme": "accounts",
+  "urgency": "normal",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"accounts\", \"urgency\": \"normal\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "H9",
+  "theme": "accounts",
+  "urgency": "normal",
+  "routed_roles": [
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"accounts\", \"urgency\": \"normal\", \"routed_roles\": [\"director\"]}"
+ },
+ {
+  "_case": "H10",
+  "theme": "meetings_appointments",
+  "urgency": "normal",
+  "routed_roles": [
+   "senior_admin",
+   "director"
+  ],
+  "raw_classification_text": "{\"theme\": \"meetings_appointments\", \"urgency\": \"normal\", \"routed_roles\": [\"senior_admin\", \"director\"]}"
+ }
+]

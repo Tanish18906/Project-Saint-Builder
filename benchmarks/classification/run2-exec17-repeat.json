@@ -1,0 +1,42 @@
+[
+ {
+  "_case": "A2",
+  "theme": "accounts",
+  "urgency": "normal",
+  "routed_roles": [
+   "director"
+  ]
+ },
+ {
+  "_case": "P3",
+  "theme": "promotions",
+  "urgency": "priority",
+  "routed_roles": [
+   "senior_admin"
+  ]
+ },
+ {
+  "_case": "I2",
+  "theme": "invoices",
+  "urgency": "priority",
+  "routed_roles": [
+   "director"
+  ]
+ },
+ {
+  "_case": "H2",
+  "theme": "nph_jobs",
+  "urgency": "urgent",
+  "routed_roles": [
+   "senior_admin"
+  ]
+ },
+ {
+  "_case": "H3",
+  "theme": "nph_jobs",
+  "urgency": "urgent",
+  "routed_roles": [
+   "senior_admin"
+  ]
+ }
+]
