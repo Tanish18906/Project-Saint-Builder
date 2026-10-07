@@ -37,7 +37,9 @@ export async function POST(request: NextRequest) {
     if (apiKey) {
       try {
         const whisperFormData = new FormData()
-        whisperFormData.append('file', audioFile, 'recording.webm')
+        // iOS Safari records audio/mp4; name the file to match so Whisper picks the right decoder
+        const ext = audioFile.type.includes('mp4') ? 'mp4' : audioFile.type.includes('ogg') ? 'ogg' : 'webm'
+        whisperFormData.append('file', audioFile, `recording.${ext}`)
         whisperFormData.append('model', 'whisper-1')
         whisperFormData.append('language', 'en')
 

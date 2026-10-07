@@ -729,7 +729,7 @@ export function VoiceEmailView({
         if (mediaStreamRef.current === stream) {
           mediaStreamRef.current = null
         }
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' })
         if (audioBlob.size > 1000) {
           await handleProcessAudioBlob(audioBlob)
         } else {
