@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         if (!openAiRes.ok) {
           const errText = await openAiRes.text()
           console.warn('[OpenAI Whisper Error]', errText)
-          return NextResponse.json({ error: 'Speech recognition failed', details: errText }, { status: 502 })
+          return NextResponse.json({ error: 'Speech recognition failed' }, { status: 502 })
         }
 
         const data = await openAiRes.json()
