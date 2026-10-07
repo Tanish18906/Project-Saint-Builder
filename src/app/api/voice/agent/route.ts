@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyVoiceToken } from '@/lib/voice-token'
-import { createClient } from '@/lib/supabase/server'
+import { createVoiceClient } from '@/lib/supabase/voice'
 
 // Conversational voice agent for the WhatsApp voice portal.
 // The model decides ONE action per utterance. It has no ability to send email:
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Load the email server-side rather than trusting client-supplied content.
-  const supabase = await createClient()
+  const supabase = await createVoiceClient()
   const { data: email } = await supabase
     .from('emails')
     .select('from_name, from_address, subject, body_text, received_at, theme, urgency, routed_roles')

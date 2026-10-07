@@ -15,7 +15,7 @@ async function run() {
       const supabase = createClient(supabaseUrl, supabaseAnonKey)
       const { data: latestEmail } = await supabase
         .from('emails')
-        .select('id, subject, category')
+        .select('id, subject, theme')
         .order('received_at', { ascending: false })
         .limit(1)
         .maybeSingle()

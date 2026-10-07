@@ -1,7 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { verifyVoiceToken, voiceTokenEmailId } from '@/lib/voice-token'
-import { createClient } from '@/lib/supabase/server'
+import { createVoiceClient } from '@/lib/supabase/voice'
 import { VoiceEmailView } from '@/components/voice'
 import { AlertCircle, ShieldAlert, ArrowRight, RotateCcw, Clock } from 'lucide-react'
 import type { VoiceEmailItem, VoiceDraftItem } from '@/components/voice/types'
@@ -30,7 +30,7 @@ function withTimeout<T>(promise: PromiseLike<T> | Promise<T>, timeoutMs = 12000)
 }
 
 async function fetchVoiceEmailData(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: Awaited<ReturnType<typeof createVoiceClient>>,
   emailId: string
 ): Promise<{
   email: VoiceEmailItem | null
@@ -183,7 +183,7 @@ export default async function VoicePage({ params, searchParams }: VoicePageProps
   let dbError = false
 
   try {
-    const supabase = await createClient()
+    const supabase = await createVoiceClient()
     emailData = await fetchVoiceEmailData(supabase, emailId)
   } catch (err: unknown) {
     console.error('[VoicePage] Database query exception:', err)

@@ -390,6 +390,7 @@ export function VoiceEmailView({
           draftId: draftRef.current?.id,
           editedText: newText,
           via: 'voice',
+          voiceToken: token,
         })
 
         setFeedback({
@@ -470,6 +471,7 @@ export function VoiceEmailView({
             draftId: draftRef.current?.id,
             editedText: textToSave,
             via: 'voice',
+            voiceToken: token,
           })
           setFeedback({
             type: 'success',
@@ -545,6 +547,7 @@ export function VoiceEmailView({
             draftId: draftRef.current?.id,
             editedText: newText,
             via: 'voice',
+            voiceToken: token,
           })
 
           setFeedback({
@@ -624,6 +627,7 @@ export function VoiceEmailView({
             draftId: draftRef.current?.id,
             editedText: reply.draft,
             via: 'voice',
+            voiceToken: token,
           })
           setFeedback({ type: 'success', message: say || 'Draft updated.' })
           void playTTS(reply.read_back ? `${say} ${reply.draft}` : say)
@@ -779,6 +783,7 @@ export function VoiceEmailView({
         editedText: draftText,
         wasDiscarded,
         via: 'voice',
+        voiceToken: token,
       })
 
       if (res.success) {
@@ -802,7 +807,7 @@ export function VoiceEmailView({
         setFeedback({ type: 'error', message: res.error || 'Failed to approve draft.' })
       }
     })
-  }, [draft, draftText, email.id, isLocked, playTTS, stopAudio, wasDiscarded])
+  }, [draft, draftText, email.id, isLocked, playTTS, stopAudio, token, wasDiscarded])
 
   const handleConfirmDiscard = useCallback(() => {
     setDraftText('')
@@ -814,6 +819,7 @@ export function VoiceEmailView({
         emailId: email.id,
         draftId: draft?.id,
         via: 'voice',
+        voiceToken: token,
       })
 
       setFeedback({
@@ -822,7 +828,7 @@ export function VoiceEmailView({
       })
       void playTTS('Draft cleared. Speak to dictate your reply.')
     })
-  }, [draft?.id, email.id, playTTS])
+  }, [draft?.id, email.id, playTTS, token])
 
   const handleManualSave = useCallback(() => {
     if (!draftText.trim()) return
@@ -833,13 +839,14 @@ export function VoiceEmailView({
         draftId: draft?.id,
         editedText: draftText,
         via: 'voice',
+        voiceToken: token,
       })
       setFeedback({
         type: 'success',
         message: 'Draft changes saved.',
       })
     })
-  }, [draft?.id, draftText, email.id])
+  }, [draft?.id, draftText, email.id, token])
 
   const handleResetToInitialAI = useCallback(() => {
     if (initialDraft?.ai_generated_text) {

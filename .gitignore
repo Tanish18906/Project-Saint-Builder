@@ -50,4 +50,4 @@ next-env.d.ts
 # Ralph loop working files (local only)
 /LOOP_PROMPT.md
 /loop-progress.md
-/.claude/.ralph-loop.local.md
+/.claude/ralph-loop.local.md
