@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
 
     // Fallback: Instruct client to use Web Speech API immediately without hanging
     return NextResponse.json({ useBrowserSpeech: true, text: cleanText })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[API: /api/voice/tts Error]', err)
-    return NextResponse.json({ error: err.message || 'Internal server error', useBrowserSpeech: true }, { status: 500 })
+    return NextResponse.json({ error: (err instanceof Error && err.message) || 'Internal server error', useBrowserSpeech: true }, { status: 500 })
   }
 }

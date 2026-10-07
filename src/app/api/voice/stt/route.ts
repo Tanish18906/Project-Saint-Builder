@@ -4,7 +4,10 @@ import { verifyVoiceToken } from '@/lib/voice-token'
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('x-voice-token')
-    const formData = await request.formData()
+    const formData = await request.formData().catch(() => null)
+    if (!formData) {
+      return NextResponse.json({ error: 'Expected multipart/form-data body' }, { status: 400 })
+    }
     const audioFile = formData.get('file') as Blob | null
     const token = formData.get('token') as string | null
     const emailId = formData.get('email_id') as string | null
@@ -55,8 +58,8 @@ export async function POST(request: NextRequest) {
 
         const data = await openAiRes.json()
         return NextResponse.json({ text: (data.text || '').trim() })
-      } catch (openAiErr: any) {
-        console.warn('[OpenAI Whisper Fetch Exception]', openAiErr?.message || openAiErr)
+      } catch (openAiErr: unknown) {
+        console.warn('[OpenAI Whisper Fetch Exception]', openAiErr instanceof Error ? openAiErr.message : openAiErr)
         return NextResponse.json({ error: 'Whisper network timeout or error', fallback: true }, { status: 500 })
       }
     }
@@ -67,8 +70,8 @@ export async function POST(request: NextRequest) {
       fallback: true,
       message: 'OPENAI_API_KEY not configured on server; client fallback used.',
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[API: /api/voice/stt Error]', err)
-    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: (err instanceof Error && err.message) || 'Internal server error' }, { status: 500 })
   }
 }

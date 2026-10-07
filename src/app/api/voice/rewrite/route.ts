@@ -127,8 +127,8 @@ ${toneInstructionText}`
           const cleanResult = rawResult.replace(/^```[a-z]*\s*/i, '').replace(/```$/g, '').trim()
           return NextResponse.json({ rewrittenText: cleanResult })
         }
-      } catch (openAiErr: any) {
-        console.warn('[OpenAI Chat Exception]', openAiErr?.message || openAiErr)
+      } catch (openAiErr: unknown) {
+        console.warn('[OpenAI Chat Exception]', openAiErr instanceof Error ? openAiErr.message : openAiErr)
       }
     }
 
@@ -161,8 +161,8 @@ ${toneInstructionText}`
     }
 
     return NextResponse.json({ rewrittenText: fallbackText })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[API: /api/voice/rewrite Error]', err)
-    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: (err instanceof Error && err.message) || 'Internal server error' }, { status: 500 })
   }
 }

@@ -81,9 +81,9 @@ export async function saveDraftAction({ emailId, draftId, editedText, via = 'das
     revalidatePath(`/voice/${emailId}`)
     revalidatePath('/')
     return { success: true, draftId: activeDraftId }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[Action: saveDraftAction Error]', err)
-    return { success: false, error: err.message || 'Failed to save draft' }
+    return { success: false, error: (err instanceof Error && err.message) || 'Failed to save draft' }
   }
 }
 
@@ -182,9 +182,9 @@ export async function approveAndSendAction({
     revalidatePath(`/voice/${emailId}`)
     revalidatePath('/')
     return { success: true, draftType, draftId: activeDraftId }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[Action: approveAndSendAction Error]', err)
-    return { success: false, error: err.message || 'Failed to approve draft' }
+    return { success: false, error: (err instanceof Error && err.message) || 'Failed to approve draft' }
   }
 }
 
@@ -223,8 +223,8 @@ export async function discardDraftAction({ emailId, draftId, via = 'dashboard' }
     revalidatePath(`/voice/${emailId}`)
     revalidatePath('/')
     return { success: true }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[Action: discardDraftAction Error]', err)
-    return { success: false, error: err.message || 'Failed to discard draft' }
+    return { success: false, error: (err instanceof Error && err.message) || 'Failed to discard draft' }
   }
 }
