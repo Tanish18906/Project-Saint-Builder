@@ -89,7 +89,13 @@ export async function POST(request: NextRequest) {
   }
 
   // Load the email server-side rather than trusting client-supplied content.
-  const supabase = await createVoiceClient()
+  const supabase = await createVoiceClient().catch((err: unknown) => {
+    console.error('[voice-agent] no voice DB client', err instanceof Error ? err.message : err)
+    return null
+  })
+  if (!supabase) {
+    return NextResponse.json({ error: 'Voice agent unavailable' }, { status: 503 })
+  }
   const { data: email } = await supabase
     .from('emails')
     .select('from_name, from_address, subject, body_text, received_at, theme, urgency, routed_roles')
