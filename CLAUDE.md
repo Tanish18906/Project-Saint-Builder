@@ -3,12 +3,13 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 @AGENTS.md
+@PROJECT_CONTEXT.md
 
 ## Project
 
 "Foreman" — an AI email triage, drafting, and human-in-the-loop approval dashboard for Allsaints Builders. Two Titan inboxes are polled by n8n, which classifies and drafts replies with OpenAI, writes to Supabase, and staff approve/edit/send from this Next.js dashboard or a mobile voice portal. Supabase is the single source of truth connecting the n8n automation engine and this UI — most business logic lives in Supabase triggers/webhooks and n8n workflows, not in this repo.
 
-Full architecture, DB schema, and end-to-end workflow are documented in `README.md` — read it before making cross-cutting changes.
+Full architecture, DB schema, and end-to-end workflow are comprehensively documented in `PROJECT_CONTEXT.md` (and `README.md`) — read `PROJECT_CONTEXT.md` before making cross-cutting changes.
 
 ## Commands
 

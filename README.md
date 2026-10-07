@@ -7,6 +7,8 @@
 
 An intelligent email management, triage, AI reply generation, and human-in-the-loop approval system designed for **Allsaints Builders**. The platform monitors dual corporate inboxes, automatically categorizes incoming emails, routes them by operational roles, drafts context-aware replies via OpenAI, and coordinates email dispatch upon dashboard approval.
 
+> 🤖 **Coding Agent Notice**: A complete, comprehensive technical manual and architectural blueprint for AI coding agents is available in [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md). Read it before working on this codebase to avoid common pitfalls with Next.js 16, schema migrations, and voice safety protocols.
+
 ---
 ## 🏗️ System Architecture
 
