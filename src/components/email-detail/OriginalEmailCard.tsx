@@ -6,6 +6,14 @@ import { Clock, User } from 'lucide-react'
 import { Card } from '@/components/ui'
 import { type EmailRecord, formatRoles } from '@/components/email-detail/types'
 
+const subscribeNoop = () => () => {}
+
+// <style> would restyle the whole dashboard (e.g. hide or cover Approve); forms could phish staff.
+const SANITIZE_OPTIONS = {
+  USE_PROFILES: { html: true },
+  FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select'],
+}
+
 export interface OriginalEmailCardProps {
   email: EmailRecord
   className?: string
@@ -30,13 +38,13 @@ export function OriginalEmailCard({ email, className = '' }: OriginalEmailCardPr
     }
   }, [email.received_at])
 
+  // DOMPurify needs a browser DOM, so sanitize only after hydration. Rendering '' on the server and
+  // during hydration, then updating, avoids React's unpatched dangerouslySetInnerHTML mismatch.
+  const isClient = React.useSyncExternalStore(subscribeNoop, () => true, () => false)
   const sanitizedHtml = React.useMemo(() => {
-    if (!email.body_html) return ''
-    if (typeof DOMPurify?.sanitize === 'function') {
-      return DOMPurify.sanitize(email.body_html, { USE_PROFILES: { html: true } })
-    }
-    return ''
-  }, [email.body_html])
+    if (!isClient || !email.body_html) return ''
+    return DOMPurify.sanitize(email.body_html, SANITIZE_OPTIONS)
+  }, [isClient, email.body_html])
 
   return (
     <Card
@@ -101,8 +109,8 @@ export function OriginalEmailCard({ email, className = '' }: OriginalEmailCardPr
         </span>
         {email.body_html ? (
           <div
-            className="prose prose-sm max-w-none text-[var(--text-primary)] leading-relaxed break-words"
-            suppressHydrationWarning
+            // contain: paint traps position:fixed overlays from email inline styles inside this box
+            className="prose prose-sm max-w-none text-[var(--text-primary)] leading-relaxed break-words relative overflow-hidden [contain:paint]"
             dangerouslySetInnerHTML={{
               __html: sanitizedHtml,
             }}
